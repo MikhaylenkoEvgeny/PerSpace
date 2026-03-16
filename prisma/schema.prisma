@@ -47,8 +47,8 @@ model Task {
   dueAt       DateTime?
   priority    Int      @default(2)
   status      String   @default("inbox")
-  tags        Json?
-  checklist   Json?
+  tags        String?
+  checklist   String?
   repeatRule  String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -65,7 +65,7 @@ model Note {
   type      String   @default("text")
   pinned    Boolean  @default(false)
   color     String?
-  tags      Json?
+  tags      String?
   archived  Boolean  @default(false)
   deletedAt DateTime?
   createdAt DateTime @default(now())
@@ -168,7 +168,7 @@ model SearchIndex {
   entityType String
   title      String
   body       String?
-  tags       Json?
+  tags       String?
   updatedAt  DateTime @updatedAt
 }
 
@@ -187,7 +187,7 @@ model Settings {
 model WorkspaceSnapshot {
   id        String   @id @default(cuid())
   userKey   String   @unique
-  payload   Json
+  payload   String
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
 }
