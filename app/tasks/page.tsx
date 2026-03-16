@@ -6,7 +6,7 @@ import { useWorkspace } from '@/components/workspace-provider';
 export default function TasksPage() {
   const { state, addTask, toggleTask } = useWorkspace();
   const [draft, setDraft] = useState('');
-  const [tab, setTab] = useState<'inbox' | 'today' | 'upcoming' | 'completed'>('today');
+  const [tab, setTab] = useState<'inbox' | 'today' | 'upcoming' | 'completed'>('inbox');
 
   const visible = useMemo(() => state.tasks.filter((task) => task.status === tab), [state.tasks, tab]);
 
