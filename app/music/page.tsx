@@ -22,7 +22,7 @@ export default function MusicPage() {
   const loadTracks = async () => {
     try {
       setError(null);
-      const response = await fetch('/api/music', { cache: 'no-store' });
+      const response = await fetch('/perSpace/api/music', { cache: 'no-store' });
       if (!response.ok) throw new Error('tracks_load_failed');
       const data = (await response.json()) as { tracks: UploadedTrack[] };
       setTracks(data.tracks);
@@ -48,7 +48,7 @@ export default function MusicPage() {
     try {
       setError(null);
       setIsUploading(true);
-      const response = await fetch('/api/music', {
+      const response = await fetch('/perSpace/api/music', {
         method: 'POST',
         body: formData
       });
