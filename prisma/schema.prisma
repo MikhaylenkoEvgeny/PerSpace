@@ -1,0 +1,185 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  taskLists    TaskList[]
+  tasks        Task[]
+  notes        Note[]
+  folders      Folder[]
+  files        FileAsset[]
+  tracks       MusicTrack[]
+  playlists    Playlist[]
+  settings     Settings?
+}
+
+model TaskList {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  color     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks Task[]
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  userId      String
+  taskListId  String?
+  title       String
+  description String?
+  dueAt       DateTime?
+  priority    Int      @default(2)
+  status      String   @default("inbox")
+  tags        String[]
+  checklist   Json?
+  repeatRule  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskList TaskList? @relation(fields: [taskListId], references: [id], onDelete: SetNull)
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String?
+  content   String
+  type      String   @default("text")
+  pinned    Boolean  @default(false)
+  color     String?
+  tags      String[]
+  archived  Boolean  @default(false)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Folder {
+  id        String   @id @default(cuid())
+  userId    String
+  parentId  String?
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   Folder?   @relation("FolderTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Folder[]  @relation("FolderTree")
+  files    FileAsset[]
+}
+
+model FileAsset {
+  id          String   @id @default(cuid())
+  userId      String
+  folderId    String?
+  name        String
+  key         String   @unique
+  mimeType    String
+  sizeBytes   BigInt
+  status      String   @default("ready")
+  previewKey  String?
+  uploadedAt  DateTime @default(now())
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder Folder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+}
+
+model Artist {
+  id     String       @id @default(cuid())
+  name   String
+  tracks MusicTrack[]
+}
+
+model Album {
+  id       String       @id @default(cuid())
+  title    String
+  year     Int?
+  coverKey String?
+  tracks   MusicTrack[]
+}
+
+model MusicTrack {
+  id           String   @id @default(cuid())
+  userId        String
+  artistId      String?
+  albumId       String?
+  title         String
+  durationSec   Int
+  fileKey       String   @unique
+  coverKey      String?
+  liked         Boolean  @default(false)
+  playCount     Int      @default(0)
+  lastPlayedAt  DateTime?
+  uploadedAt    DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artist   Artist?  @relation(fields: [artistId], references: [id], onDelete: SetNull)
+  album    Album?   @relation(fields: [albumId], references: [id], onDelete: SetNull)
+  playlistItems PlaylistItem[]
+}
+
+model Playlist {
+  id        String   @id @default(cuid())
+  userId     String
+  title      String
+  description String?
+  createdAt DateTime @default(now())
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items PlaylistItem[]
+}
+
+model PlaylistItem {
+  id         String   @id @default(cuid())
+  playlistId String
+  trackId    String
+  position   Int
+
+  playlist Playlist   @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  track    MusicTrack @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, position])
+}
+
+model SearchIndex {
+  id        String   @id @default(cuid())
+  userId    String
+  entityId  String
+  entityType String
+  title     String
+  body      String?
+  tags      String[]
+  updatedAt DateTime @updatedAt
+}
+
+model Settings {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  theme             String   @default("system")
+  language          String   @default("ru")
+  notifications     Boolean  @default(true)
+  musicAutoplay     Boolean  @default(false)
+  qualityPreference String   @default("high")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
