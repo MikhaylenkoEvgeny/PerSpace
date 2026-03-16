@@ -18,6 +18,16 @@ const nav = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const isLoginPage = pathname === '/login';
+
+  const logout = async () => {
+    await fetch('/perSpace/api/auth/logout', { method: 'POST' });
+    window.location.href = '/perSpace/login';
+  };
+
+  if (isLoginPage) {
+    return <div className="safe-bottom min-h-screen p-3 md:p-6">{children}</div>;
+  }
 
   return (
     <div className="safe-bottom min-h-screen p-3 md:p-6 pb-24 md:pb-6">
@@ -36,6 +46,9 @@ export function AppShell({ children }: { children: ReactNode }) {
               );
             })}
           </nav>
+          <button onClick={logout} className="mt-6 w-full rounded-xl bg-muted px-3 py-2 text-sm hover:bg-muted/80">
+            Выйти
+          </button>
         </aside>
         <main>
           <AnimatePresence mode="wait">
