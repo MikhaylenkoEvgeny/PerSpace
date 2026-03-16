@@ -5,6 +5,7 @@ const withPWA = require('next-pwa')({
 
 module.exports = withPWA({
   reactStrictMode: true,
+  basePath: '/perSpace',
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb'
