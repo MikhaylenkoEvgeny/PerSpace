@@ -4,9 +4,19 @@ import { seedState } from '@/lib/seed';
 
 const USER_KEY = 'local-single-user';
 
+function parseSnapshotPayload(payload: string) {
+  try {
+    return JSON.parse(payload);
+  } catch {
+    return seedState;
+  }
+}
+
 export async function GET() {
   const snapshot = await prisma.workspaceSnapshot.findUnique({ where: { userKey: USER_KEY } });
-  return NextResponse.json({ state: snapshot?.payload ?? seedState });
+  const state = snapshot ? parseSnapshotPayload(snapshot.payload) : seedState;
+
+  return NextResponse.json({ state });
 }
 
 export async function POST(request: Request) {
@@ -20,10 +30,10 @@ export async function POST(request: Request) {
     where: { userKey: USER_KEY },
     create: {
       userKey: USER_KEY,
-      payload: body.state
+      payload: JSON.stringify(body.state)
     },
     update: {
-      payload: body.state
+      payload: JSON.stringify(body.state)
     }
   });
 
