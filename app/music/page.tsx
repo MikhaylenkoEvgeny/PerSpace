@@ -112,7 +112,7 @@ export default function MusicPage() {
           <p className="text-xs uppercase tracking-[0.2em] text-fg/55">Now playing</p>
           <h3 className="mt-2 text-xl font-semibold">{active?.title ?? 'Нет трека'}</h3>
           <p className="text-fg/70">{active ? `${active.artist} · ${active.album}` : 'Загрузите музыку, чтобы начать воспроизведение'}</p>
-          {active ? <audio className="mt-6 w-full" controls src={active.fileUrl} /> : null}
+          {active ? <audio key={active.id} className="mt-6 w-full" controls preload="metadata" src={active.fileUrl} /> : null}
         </div>
       </div>
     </div>
