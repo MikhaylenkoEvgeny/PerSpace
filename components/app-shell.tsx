@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Home, CheckSquare, Notebook, Folder, Music2, Search, Settings } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { ReactNode } from 'react';
+import { GlobalMusicPlayer } from '@/components/global-music-player';
 
 const nav = [
   { href: '/', label: 'Home', icon: Home },
@@ -30,7 +31,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="safe-bottom min-h-screen p-3 md:p-6 pb-24 md:pb-6">
+    <div className="safe-bottom min-h-screen p-3 md:p-6 pb-44 md:pb-24">
       <div className="mx-auto grid max-w-7xl gap-4 md:grid-cols-[260px_1fr]">
         <aside className="glass sticky top-6 hidden h-[calc(100vh-3rem)] rounded-2xl p-4 md:block">
           <h1 className="text-sm font-medium uppercase tracking-[0.25em] text-fg/70">Personal Space</h1>
@@ -58,6 +59,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           </AnimatePresence>
         </main>
       </div>
+
+      <GlobalMusicPlayer />
 
       <nav className="glass fixed bottom-2 left-2 right-2 z-50 rounded-2xl p-2 md:hidden">
         <ul className="grid grid-cols-7 gap-1">

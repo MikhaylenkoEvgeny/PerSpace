@@ -4,6 +4,11 @@ import path from 'node:path';
 
 const MUSIC_DIR = path.join(process.cwd(), 'public', 'uploads', 'music');
 const AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac', '.webm']);
+const BASE_PATH = '/perSpace';
+
+function withBasePath(url: string) {
+  return `${BASE_PATH}${url}`;
+}
 
 interface UploadedTrack {
   id: string;
@@ -50,7 +55,7 @@ export async function GET() {
         album: 'Uploaded',
         duration: '—',
         favorite: false,
-        fileUrl: `/uploads/music/${encodeURIComponent(entry.name)}`,
+        fileUrl: withBasePath(`/uploads/music/${encodeURIComponent(entry.name)}`),
         uploadedAt: fileStat.birthtime.toISOString()
       };
 
@@ -84,5 +89,5 @@ export async function POST(request: Request) {
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(filePath, buffer);
 
-  return NextResponse.json({ ok: true, fileName: uniqueName, fileUrl: `/uploads/music/${encodeURIComponent(uniqueName)}` });
+  return NextResponse.json({ ok: true, fileName: uniqueName, fileUrl: withBasePath(`/uploads/music/${encodeURIComponent(uniqueName)}`) });
 }
