@@ -1,42 +1,36 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useState, type ChangeEvent } from 'react';
+import { useMusicPlayer, type PlayerTrack } from '@/components/music-player-provider';
 
-interface UploadedTrack {
-  id: string;
-  title: string;
-  artist: string;
-  album: string;
+interface UploadedTrack extends PlayerTrack {
   duration: string;
   favorite: boolean;
-  fileUrl: string;
   uploadedAt: string;
 }
 
 export default function MusicPage() {
   const [tracks, setTracks] = useState<UploadedTrack[]>([]);
-  const [activeId, setActiveId] = useState<string>();
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { activeTrack, setTracks: setPlayerTracks, playTrack } = useMusicPlayer();
 
-  const loadTracks = async () => {
+  const loadTracks = useCallback(async () => {
     try {
       setError(null);
       const response = await fetch('/perSpace/api/music', { cache: 'no-store' });
       if (!response.ok) throw new Error('tracks_load_failed');
       const data = (await response.json()) as { tracks: UploadedTrack[] };
       setTracks(data.tracks);
-      setActiveId((prev) => prev ?? data.tracks[0]?.id);
+      setPlayerTracks(data.tracks);
     } catch {
       setError('Не удалось загрузить вашу библиотеку.');
     }
-  };
+  }, [setPlayerTracks]);
 
   useEffect(() => {
     loadTracks();
-  }, []);
-
-  const active = useMemo(() => tracks.find((track) => track.id === activeId) ?? tracks[0], [activeId, tracks]);
+  }, [loadTracks]);
 
   const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -96,8 +90,8 @@ export default function MusicPage() {
               {tracks.map((track) => (
                 <li key={track.id}>
                   <button
-                    onClick={() => setActiveId(track.id)}
-                    className={`flex w-full items-center justify-between rounded-xl p-3 text-left ${active?.id === track.id ? 'bg-accent text-white' : 'bg-muted/50'}`}
+                    onClick={() => playTrack(track.id)}
+                    className={`flex w-full items-center justify-between rounded-xl p-3 text-left ${activeTrack?.id === track.id ? 'bg-accent text-white' : 'bg-muted/50'}`}
                   >
                     <span>{track.title} — {track.artist}</span>
                     <span className="text-xs opacity-80">{track.duration}</span>
@@ -110,9 +104,9 @@ export default function MusicPage() {
 
         <div className="glass rounded-2xl p-5">
           <p className="text-xs uppercase tracking-[0.2em] text-fg/55">Now playing</p>
-          <h3 className="mt-2 text-xl font-semibold">{active?.title ?? 'Нет трека'}</h3>
-          <p className="text-fg/70">{active ? `${active.artist} · ${active.album}` : 'Загрузите музыку, чтобы начать воспроизведение'}</p>
-          {active ? <audio key={active.id} className="mt-6 w-full" controls preload="metadata" src={active.fileUrl} /> : null}
+          <h3 className="mt-2 text-xl font-semibold">{activeTrack?.title ?? 'Нет трека'}</h3>
+          <p className="text-fg/70">{activeTrack ? `${activeTrack.artist} · ${activeTrack.album}` : 'Выберите трек из списка для воспроизведения'}</p>
+          <p className="mt-4 text-sm text-fg/65">Плеер закреплён внизу страницы и продолжает играть музыку при переходе по разделам.</p>
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { AppShell } from '@/components/app-shell';
 import { WorkspaceProvider } from '@/components/workspace-provider';
+import { MusicPlayerProvider } from '@/components/music-player-provider';
 
 export const metadata: Metadata = {
   title: 'PerSpace',
@@ -20,7 +21,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ru">
       <body>
         <WorkspaceProvider>
-          <AppShell>{children}</AppShell>
+          <MusicPlayerProvider>
+            <AppShell>{children}</AppShell>
+          </MusicPlayerProvider>
         </WorkspaceProvider>
       </body>
     </html>
