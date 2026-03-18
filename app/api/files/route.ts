@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { mkdir, readdir, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const FILES_DIR = path.join(process.cwd(), 'public', 'uploads', 'files');
+const BASE_PATH = '/perSpace';
 
 interface UploadedFile {
   id: string;
@@ -13,6 +14,10 @@ interface UploadedFile {
   updatedAt: string;
   fileUrl: string;
   uploadedAt: string;
+}
+
+function withBasePath(url: string) {
+  return `${BASE_PATH}${url}`;
 }
 
 function sanitizeBaseName(name: string) {
@@ -59,7 +64,7 @@ export async function GET() {
             dateStyle: 'short',
             timeStyle: 'short'
           }).format(fileStat.mtime),
-          fileUrl: `/uploads/files/${encodeURIComponent(entry.name)}`,
+          fileUrl: withBasePath(`/uploads/files/${encodeURIComponent(entry.name)}`),
           uploadedAt: fileStat.birthtime.toISOString()
         };
 
@@ -89,5 +94,25 @@ export async function POST(request: Request) {
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(filePath, buffer);
 
-  return NextResponse.json({ ok: true, fileName: uniqueName, fileUrl: `/uploads/files/${encodeURIComponent(uniqueName)}` });
+  return NextResponse.json({ ok: true, fileName: uniqueName, fileUrl: withBasePath(`/uploads/files/${encodeURIComponent(uniqueName)}`) });
+}
+
+export async function DELETE(request: Request) {
+  await ensureFilesDir();
+  const { searchParams } = new URL(request.url);
+  const fileId = searchParams.get('id');
+
+  if (!fileId) {
+    return NextResponse.json({ error: 'missing_id' }, { status: 400 });
+  }
+
+  const safeName = path.basename(fileId);
+  const targetPath = path.join(FILES_DIR, safeName);
+
+  try {
+    await unlink(targetPath);
+    return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json({ error: 'file_not_found' }, { status: 404 });
+  }
 }

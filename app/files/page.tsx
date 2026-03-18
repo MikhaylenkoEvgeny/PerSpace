@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
 
 interface UploadedFile {
   id: string;
@@ -18,7 +18,7 @@ export default function FilesPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadFiles = async () => {
+  const loadFiles = useCallback(async () => {
     try {
       setError(null);
       const response = await fetch('/perSpace/api/files', { cache: 'no-store' });
@@ -28,11 +28,11 @@ export default function FilesPage() {
     } catch {
       setError('Не удалось загрузить файлы.');
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadFiles();
-  }, []);
+  }, [loadFiles]);
 
   const visibleFiles = useMemo(
     () => files.filter((file) => file.name.toLowerCase().includes(query.toLowerCase())),
@@ -71,6 +71,21 @@ export default function FilesPage() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    try {
+      setError(null);
+      const response = await fetch(`/perSpace/api/files?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Не удалось удалить файл.');
+      await loadFiles();
+    } catch (deleteError) {
+      if (deleteError instanceof Error) {
+        setError(deleteError.message);
+      } else {
+        setError('Не удалось удалить файл.');
+      }
+    }
+  };
+
   return (
     <div className="glass rounded-2xl p-6">
       <h1 className="text-2xl font-semibold">Files</h1>
@@ -90,8 +105,17 @@ export default function FilesPage() {
           </thead>
           <tbody>
             {visibleFiles.map((file) => (
-              <tr key={file.id} className="border-t border-fg/10">
-                <td className="py-3"><a href={file.fileUrl} target="_blank" rel="noreferrer" className="hover:underline">{file.name}</a></td><td>{file.folder}</td><td>{file.type}</td><td>{file.size}</td><td>{file.updatedAt}</td>
+              <tr key={file.id} className="border-t border-fg/10 align-top">
+                <td className="py-3">
+                  <a href={file.fileUrl} target="_blank" rel="noreferrer" className="hover:underline">{file.name}</a>
+                  <div className="mt-2">
+                    <button onClick={() => handleDelete(file.id)} className="rounded-lg border border-red-300 bg-red-50 px-3 py-1 text-xs font-medium text-red-700">Удалить</button>
+                  </div>
+                </td>
+                <td className="py-3">{file.folder}</td>
+                <td className="py-3">{file.type}</td>
+                <td className="py-3">{file.size}</td>
+                <td className="py-3">{file.updatedAt}</td>
               </tr>
             ))}
           </tbody>

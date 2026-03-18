@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { seedState } from '@/lib/seed';
 import type { NoteItem, TaskItem, WorkspaceState } from '@/lib/types';
 
@@ -8,8 +8,10 @@ interface WorkspaceContextValue {
   state: WorkspaceState;
   addTask: (title: string) => void;
   toggleTask: (id: string) => void;
+  removeTask: (id: string) => void;
   addNote: (title: string, content: string) => void;
   pinNote: (id: string) => void;
+  removeNote: (id: string) => void;
   queryAll: (query: string) => Array<{ type: string; id: string; title: string }>;
 }
 
@@ -74,7 +76,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     };
   }, [state, hydrated]);
 
-  const addTask = (title: string) => {
+  const addTask = useCallback((title: string) => {
     if (!title.trim()) return;
     const task: TaskItem = {
       id: crypto.randomUUID(),
@@ -84,18 +86,22 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       tags: []
     };
     setState((prev) => ({ ...prev, tasks: [task, ...prev.tasks] }));
-  };
+  }, []);
 
-  const toggleTask = (id: string) => {
+  const toggleTask = useCallback((id: string) => {
     setState((prev) => ({
       ...prev,
       tasks: prev.tasks.map((task) =>
         task.id === id ? { ...task, status: task.status === 'completed' ? 'today' : 'completed' } : task
       )
     }));
-  };
+  }, []);
 
-  const addNote = (title: string, content: string) => {
+  const removeTask = useCallback((id: string) => {
+    setState((prev) => ({ ...prev, tasks: prev.tasks.filter((task) => task.id !== id) }));
+  }, []);
+
+  const addNote = useCallback((title: string, content: string) => {
     const note: NoteItem = {
       id: crypto.randomUUID(),
       title: title || 'Без названия',
@@ -105,16 +111,20 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       tags: []
     };
     setState((prev) => ({ ...prev, notes: [note, ...prev.notes] }));
-  };
+  }, []);
 
-  const pinNote = (id: string) => {
+  const pinNote = useCallback((id: string) => {
     setState((prev) => ({
       ...prev,
       notes: prev.notes.map((note) => (note.id === id ? { ...note, pinned: !note.pinned } : note))
     }));
-  };
+  }, []);
 
-  const queryAll = (query: string) => {
+  const removeNote = useCallback((id: string) => {
+    setState((prev) => ({ ...prev, notes: prev.notes.filter((note) => note.id !== id) }));
+  }, []);
+
+  const queryAll = useCallback((query: string) => {
     const q = query.toLowerCase().trim();
     if (!q) return [];
 
@@ -124,18 +134,20 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       ...state.files.map((file) => ({ type: 'file', id: file.id, title: file.name })),
       ...state.tracks.map((track) => ({ type: 'music', id: track.id, title: `${track.title} — ${track.artist}` }))
     ].filter((item) => item.title.toLowerCase().includes(q));
-  };
+  }, [state.tasks, state.notes, state.files, state.tracks]);
 
   const value = useMemo(
     () => ({
       state,
       addTask,
       toggleTask,
+      removeTask,
       addNote,
       pinNote,
+      removeNote,
       queryAll
     }),
-    [state]
+    [state, addTask, toggleTask, removeTask, addNote, pinNote, removeNote, queryAll]
   );
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;

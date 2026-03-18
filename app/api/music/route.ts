@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
-import { mkdir, readdir, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const MUSIC_DIR = path.join(process.cwd(), 'public', 'uploads', 'music');
 const AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac', '.webm']);
+const BASE_PATH = '/perSpace';
+
+function withBasePath(url: string) {
+  return `${BASE_PATH}${url}`;
+}
 
 interface UploadedTrack {
   id: string;
@@ -50,7 +55,7 @@ export async function GET() {
         album: 'Uploaded',
         duration: '—',
         favorite: false,
-        fileUrl: `/uploads/music/${encodeURIComponent(entry.name)}`,
+        fileUrl: withBasePath(`/uploads/music/${encodeURIComponent(entry.name)}`),
         uploadedAt: fileStat.birthtime.toISOString()
       };
 
@@ -84,5 +89,25 @@ export async function POST(request: Request) {
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(filePath, buffer);
 
-  return NextResponse.json({ ok: true, fileName: uniqueName, fileUrl: `/uploads/music/${encodeURIComponent(uniqueName)}` });
+  return NextResponse.json({ ok: true, fileName: uniqueName, fileUrl: withBasePath(`/uploads/music/${encodeURIComponent(uniqueName)}`) });
+}
+
+export async function DELETE(request: Request) {
+  await ensureMusicDir();
+  const { searchParams } = new URL(request.url);
+  const trackId = searchParams.get('id');
+
+  if (!trackId) {
+    return NextResponse.json({ error: 'missing_id' }, { status: 400 });
+  }
+
+  const safeName = path.basename(trackId);
+  const targetPath = path.join(MUSIC_DIR, safeName);
+
+  try {
+    await unlink(targetPath);
+    return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json({ error: 'track_not_found' }, { status: 404 });
+  }
 }
