@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -187,7 +187,7 @@ model Settings {
 model WorkspaceSnapshot {
   id        String   @id @default(cuid())
   userKey   String   @unique
-  payload   String
+  payload   String   @db.LongText
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
 }
