@@ -68,6 +68,21 @@ export default function MusicPage() {
     }
   };
 
+  const handleDeleteTrack = async (id: string) => {
+    try {
+      setError(null);
+      const response = await fetch(`/perSpace/api/music?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Не удалось удалить трек.');
+      await loadTracks();
+    } catch (deleteError) {
+      if (deleteError instanceof Error) {
+        setError(deleteError.message);
+      } else {
+        setError('Не удалось удалить трек.');
+      }
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="glass rounded-2xl p-6">
@@ -88,13 +103,16 @@ export default function MusicPage() {
           ) : (
             <ul className="space-y-2">
               {tracks.map((track) => (
-                <li key={track.id}>
+                <li key={track.id} className="flex items-center gap-2">
                   <button
                     onClick={() => playTrack(track.id)}
-                    className={`flex w-full items-center justify-between rounded-xl p-3 text-left ${activeTrack?.id === track.id ? 'bg-accent text-white' : 'bg-muted/50'}`}
+                    className={`flex flex-1 items-center justify-between rounded-xl p-3 text-left ${activeTrack?.id === track.id ? 'bg-accent text-white' : 'bg-muted/50'}`}
                   >
                     <span>{track.title} — {track.artist}</span>
                     <span className="text-xs opacity-80">{track.duration}</span>
+                  </button>
+                  <button onClick={() => handleDeleteTrack(track.id)} className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+                    Удалить
                   </button>
                 </li>
               ))}

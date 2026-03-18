@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useWorkspace } from '@/components/workspace-provider';
 
 export default function NotesPage() {
-  const { state, addNote, pinNote } = useWorkspace();
+  const { state, addNote, pinNote, removeNote } = useWorkspace();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
 
@@ -25,9 +25,14 @@ export default function NotesPage() {
           <article key={note.id} className="glass rounded-2xl p-4">
             <div className="flex items-start justify-between gap-3">
               <h2 className="font-semibold">{note.title}</h2>
-              <button onClick={() => pinNote(note.id)} className={`rounded-md px-2 py-1 text-xs ${note.pinned ? 'bg-accent text-white' : 'bg-muted'}`}>
-                {note.pinned ? 'Pinned' : 'Pin'}
-              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => pinNote(note.id)} className={`rounded-md px-2 py-1 text-xs ${note.pinned ? 'bg-accent text-white' : 'bg-muted'}`}>
+                  {note.pinned ? 'Pinned' : 'Pin'}
+                </button>
+                <button onClick={() => removeNote(note.id)} className="rounded-md border border-red-300 bg-red-50 px-2 py-1 text-xs font-medium text-red-700">
+                  Удалить
+                </button>
+              </div>
             </div>
             <p className="mt-2 text-sm text-fg/75">{note.content}</p>
           </article>

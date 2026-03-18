@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useWorkspace } from '@/components/workspace-provider';
 
 export default function TasksPage() {
-  const { state, addTask, toggleTask } = useWorkspace();
+  const { state, addTask, toggleTask, removeTask } = useWorkspace();
   const [draft, setDraft] = useState('');
   const [tab, setTab] = useState<'inbox' | 'today' | 'upcoming' | 'completed'>('inbox');
 
@@ -31,14 +31,21 @@ export default function TasksPage() {
         </div>
         <ul className="space-y-2">
           {visible.map((task) => (
-            <li key={task.id} className="flex items-center justify-between rounded-xl bg-muted/50 p-3">
-              <div>
-                <p className={task.status === 'completed' ? 'line-through opacity-60' : ''}>{task.title}</p>
-                <p className="text-xs text-fg/60">{task.due ?? 'Без дедлайна'} · {task.priority}</p>
+            <li key={task.id} className="rounded-xl bg-muted/50 p-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className={task.status === 'completed' ? 'line-through opacity-60' : ''}>{task.title}</p>
+                  <p className="text-xs text-fg/60">{task.due ?? 'Без дедлайна'} · {task.priority}</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
+                  <button onClick={() => toggleTask(task.id)} className="rounded-lg bg-panel px-3 py-1 text-xs">
+                    {task.status === 'completed' ? 'Восстановить' : 'Завершить'}
+                  </button>
+                  <button onClick={() => removeTask(task.id)} className="rounded-lg border border-red-300 bg-red-50 px-3 py-1 text-xs font-medium text-red-700">
+                    Удалить
+                  </button>
+                </div>
               </div>
-              <button onClick={() => toggleTask(task.id)} className="rounded-lg bg-panel px-3 py-1 text-xs">
-                {task.status === 'completed' ? 'Восстановить' : 'Завершить'}
-              </button>
             </li>
           ))}
         </ul>
