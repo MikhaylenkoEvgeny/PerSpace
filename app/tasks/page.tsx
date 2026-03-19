@@ -114,7 +114,7 @@ export default function TasksPage() {
                       {task.note ? <p className="mt-2 line-clamp-3 text-xs text-fg/60">{task.note}</p> : null}
                     </button>
                     <button onClick={() => toggleFocusTask(task.id)} className={`shrink-0 rounded-lg px-3 py-1 text-xs ${state.settings.focusTaskIds.includes(task.id) ? 'bg-violet-500 text-white' : 'bg-panel'}`}>
-                      {state.settings.focusTaskIds.includes(task.id) ? 'Top 3' : 'В Top 3'}
+                      {state.settings.focusTaskIds.includes(task.id) ? 'Убрать из Top 3' : 'В Top 3'}
                     </button>
                   </div>
 

@@ -42,7 +42,7 @@ export default function HomePage() {
           <div className="rounded-2xl bg-panel/70 p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-fg/55">Today</p>
             <p className="mt-2 text-3xl font-semibold">{todayTasks.length}</p>
-            <p className="mt-1 text-sm text-fg/65">задач в фокусе</p>
+            <p className="mt-1 text-sm text-fg/65">задач на сегодня</p>
           </div>
           <div className="rounded-2xl bg-panel/70 p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-fg/55">Inbox</p>

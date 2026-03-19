@@ -105,7 +105,7 @@ export default function ShutdownPage() {
                   <div className="flex flex-wrap gap-2">
                     <button type="button" onClick={() => updateTask(task.id, { status: 'today' })} className="rounded-xl bg-accent px-3 py-2 text-xs text-white">Сделать первым завтра</button>
                     <button type="button" onClick={() => toggleFocusTask(task.id)} className={`rounded-xl px-3 py-2 text-xs ${focusTaskIds.includes(task.id) ? 'bg-violet-500 text-white' : 'bg-panel'}`}>
-                      {focusTaskIds.includes(task.id) ? 'В Top 3' : 'Добавить в Top 3'}
+                      {focusTaskIds.includes(task.id) ? 'Убрать из Top 3' : 'Добавить в Top 3'}
                     </button>
                     <button type="button" onClick={() => updateTask(task.id, { status: 'upcoming' })} className="rounded-xl bg-panel px-3 py-2 text-xs">Оставить в backlog</button>
                   </div>
