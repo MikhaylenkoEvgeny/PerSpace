@@ -2,16 +2,20 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { seedState } from '@/lib/seed';
-import type { NoteItem, TaskItem, WorkspaceState } from '@/lib/types';
+import type { NoteItem, SettingsState, TaskItem, WorkspaceState } from '@/lib/types';
 
 interface WorkspaceContextValue {
   state: WorkspaceState;
   addTask: (title: string) => void;
+  updateTask: (id: string, patch: Partial<TaskItem>) => void;
   toggleTask: (id: string) => void;
   removeTask: (id: string) => void;
   addNote: (title: string, content: string) => void;
+  updateNote: (id: string, patch: Partial<NoteItem>) => void;
   pinNote: (id: string) => void;
   removeNote: (id: string) => void;
+  updateSettings: (patch: Partial<SettingsState>) => void;
+  toggleFocusTask: (id: string) => void;
   queryAll: (query: string) => Array<{ type: string; id: string; title: string }>;
 }
 
@@ -55,6 +59,19 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const resolvedTheme = state.settings.theme === 'system'
+      ? (prefersDark ? 'dark' : 'light')
+      : state.settings.theme;
+
+    root.classList.toggle('dark', resolvedTheme === 'dark');
+    root.classList.toggle('reduce-motion', state.settings.reducedMotion);
+    root.style.colorScheme = resolvedTheme;
+  }, [state.settings.theme, state.settings.reducedMotion]);
+
   useEffect(() => {
     if (!hydrated) return;
 
@@ -88,6 +105,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => ({ ...prev, tasks: [task, ...prev.tasks] }));
   }, []);
 
+  const updateTask = useCallback((id: string, patch: Partial<TaskItem>) => {
+    setState((prev) => ({
+      ...prev,
+      tasks: prev.tasks.map((task) => (task.id === id ? { ...task, ...patch } : task))
+    }));
+  }, []);
+
   const toggleTask = useCallback((id: string) => {
     setState((prev) => ({
       ...prev,
@@ -98,7 +122,14 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const removeTask = useCallback((id: string) => {
-    setState((prev) => ({ ...prev, tasks: prev.tasks.filter((task) => task.id !== id) }));
+    setState((prev) => ({
+      ...prev,
+      tasks: prev.tasks.filter((task) => task.id !== id),
+      settings: {
+        ...prev.settings,
+        focusTaskIds: prev.settings.focusTaskIds.filter((taskId) => taskId !== id)
+      }
+    }));
   }, []);
 
   const addNote = useCallback((title: string, content: string) => {
@@ -113,6 +144,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => ({ ...prev, notes: [note, ...prev.notes] }));
   }, []);
 
+  const updateNote = useCallback((id: string, patch: Partial<NoteItem>) => {
+    setState((prev) => ({
+      ...prev,
+      notes: prev.notes.map((note) => (note.id === id ? { ...note, ...patch } : note))
+    }));
+  }, []);
+
   const pinNote = useCallback((id: string) => {
     setState((prev) => ({
       ...prev,
@@ -122,6 +160,30 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   const removeNote = useCallback((id: string) => {
     setState((prev) => ({ ...prev, notes: prev.notes.filter((note) => note.id !== id) }));
+  }, []);
+
+  const updateSettings = useCallback((patch: Partial<SettingsState>) => {
+    setState((prev) => ({
+      ...prev,
+      settings: { ...prev.settings, ...patch }
+    }));
+  }, []);
+
+  const toggleFocusTask = useCallback((id: string) => {
+    setState((prev) => {
+      const alreadyFocused = prev.settings.focusTaskIds.includes(id);
+      const focusTaskIds = alreadyFocused
+        ? prev.settings.focusTaskIds.filter((taskId) => taskId !== id)
+        : [...prev.settings.focusTaskIds.slice(-2), id];
+
+      return {
+        ...prev,
+        settings: {
+          ...prev.settings,
+          focusTaskIds
+        }
+      };
+    });
   }, []);
 
   const queryAll = useCallback((query: string) => {
@@ -140,14 +202,18 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     () => ({
       state,
       addTask,
+      updateTask,
       toggleTask,
       removeTask,
       addNote,
+      updateNote,
       pinNote,
       removeNote,
+      updateSettings,
+      toggleFocusTask,
       queryAll
     }),
-    [state, addTask, toggleTask, removeTask, addNote, pinNote, removeNote, queryAll]
+    [state, addTask, updateTask, toggleTask, removeTask, addNote, updateNote, pinNote, removeNote, updateSettings, toggleFocusTask, queryAll]
   );
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;

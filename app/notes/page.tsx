@@ -1,43 +1,65 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useWorkspace } from '@/components/workspace-provider';
 
 export default function NotesPage() {
-  const { state, addNote, pinNote, removeNote } = useWorkspace();
+  const { state, addNote, updateNote, pinNote, removeNote } = useWorkspace();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [query, setQuery] = useState('');
+
+  const visibleNotes = useMemo(
+    () => state.notes.filter((note) => `${note.title} ${note.content}`.toLowerCase().includes(query.toLowerCase())),
+    [query, state.notes]
+  );
 
   return (
-    <div className="space-y-4">
-      <div className="glass rounded-2xl p-6">
-        <h1 className="text-2xl font-semibold">Notes</h1>
-        <p className="mt-2 text-fg/70">Карточки заметок с pin, autosave-style поведением и мягкой визуальной иерархией.</p>
-        <div className="mt-4 grid gap-2 md:grid-cols-2">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Заголовок" className="rounded-xl border border-fg/15 bg-panel px-3 py-2 outline-none focus:ring-2 focus:ring-accent/50" />
-          <button onClick={() => { addNote(title, content); setTitle(''); setContent(''); }} className="rounded-xl bg-accent px-4 py-2 text-white">Создать карточку</button>
-          <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Содержание..." className="md:col-span-2 min-h-28 rounded-xl border border-fg/15 bg-panel px-3 py-2 outline-none focus:ring-2 focus:ring-accent/50" />
-        </div>
-      </div>
+    <div className="page-shell">
+      <header className="page-header">
+        <p className="text-sm font-medium text-fg/50">Notes</p>
+        <h1 className="page-title">Тихий список заметок вместо шумной доски.</h1>
+        <p className="page-subtitle">Оставляем только поиск, создание и редактирование. Никаких лишних визуальных слоёв.</p>
+      </header>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {state.notes.map((note) => (
-          <article key={note.id} className="glass rounded-2xl p-4">
-            <div className="flex items-start justify-between gap-3">
-              <h2 className="font-semibold">{note.title}</h2>
-              <div className="flex items-center gap-2">
-                <button onClick={() => pinNote(note.id)} className={`rounded-md px-2 py-1 text-xs ${note.pinned ? 'bg-accent text-white' : 'bg-muted'}`}>
-                  {note.pinned ? 'Pinned' : 'Pin'}
-                </button>
-                <button onClick={() => removeNote(note.id)} className="rounded-md border border-red-300 bg-red-50 px-2 py-1 text-xs font-medium text-red-700">
-                  Удалить
-                </button>
+      <section className="surface p-5 md:p-6">
+        <div className="grid gap-3 md:grid-cols-[220px_1fr_auto]">
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Заголовок" className="h-11 rounded-xl border border-fg/10 bg-transparent px-4 text-sm outline-none focus:ring-2 focus:ring-accent/25" />
+          <input value={content} onChange={(e) => setContent(e.target.value)} placeholder="Короткая мысль или заметка" className="h-11 rounded-xl border border-fg/10 bg-transparent px-4 text-sm outline-none focus:ring-2 focus:ring-accent/25" />
+          <button onClick={() => { addNote(title, content); setTitle(''); setContent(''); }} className="h-11 rounded-xl bg-fg px-4 text-sm font-medium text-white">Create</button>
+        </div>
+        <div className="mt-3">
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search notes" className="h-11 w-full rounded-xl border border-fg/10 bg-transparent px-4 text-sm outline-none focus:ring-2 focus:ring-accent/25" />
+        </div>
+      </section>
+
+      <section className="surface p-5 md:p-6">
+        <div className="space-y-3">
+          {visibleNotes.map((note) => (
+            <article key={note.id} className="rounded-xl border border-fg/10 px-4 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <input
+                    value={note.title}
+                    onChange={(event) => updateNote(note.id, { title: event.target.value || 'Без названия' })}
+                    className="w-full bg-transparent text-base font-semibold outline-none"
+                  />
+                  <textarea
+                    value={note.content}
+                    onChange={(event) => updateNote(note.id, { content: event.target.value })}
+                    className="mt-2 min-h-24 w-full resize-none bg-transparent text-sm leading-6 text-fg/72 outline-none"
+                  />
+                </div>
+                <div className="flex items-center gap-2 text-sm text-fg/55">
+                  <button onClick={() => pinNote(note.id)}>{note.pinned ? 'Unpin' : 'Pin'}</button>
+                  <button onClick={() => removeNote(note.id)} className="text-red-600">Delete</button>
+                </div>
               </div>
-            </div>
-            <p className="mt-2 text-sm text-fg/75">{note.content}</p>
-          </article>
-        ))}
-      </div>
+            </article>
+          ))}
+          {!visibleNotes.length ? <p className="text-sm text-fg/55">Ничего не найдено. Это хорошо: экран остаётся тихим и читаемым.</p> : null}
+        </div>
+      </section>
     </div>
   );
 }
