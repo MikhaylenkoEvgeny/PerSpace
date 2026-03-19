@@ -1,23 +1,19 @@
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { mkdir, readdir, stat, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { prisma } from '@/lib/prisma';
+import { AUTH_COOKIE } from '@/lib/auth-cookie';
 
 const FILES_DIR = path.join(process.cwd(), 'public', 'uploads', 'files');
 const BASE_PATH = '/perSpace';
 
-interface UploadedFile {
-  id: string;
-  name: string;
-  folder: string;
-  size: string;
-  type: string;
-  updatedAt: string;
-  fileUrl: string;
-  uploadedAt: string;
-}
-
 function withBasePath(url: string) {
   return `${BASE_PATH}${url}`;
+}
+
+function getAuthorizedUserId() {
+  return cookies().get(AUTH_COOKIE)?.value ?? null;
 }
 
 function sanitizeBaseName(name: string) {
@@ -44,40 +40,29 @@ async function ensureFilesDir() {
 }
 
 export async function GET() {
-  await ensureFilesDir();
-  const entries = await readdir(FILES_DIR, { withFileTypes: true });
+  const userId = getAuthorizedUserId();
+  if (!userId) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  const files = await Promise.all(
-    entries
-      .filter((entry) => entry.isFile())
-      .map(async (entry) => {
-        const ext = path.extname(entry.name);
-        const fileStat = await stat(path.join(FILES_DIR, entry.name));
+  const files = await prisma.fileAsset.findMany({ where: { userId }, orderBy: { uploadedAt: 'desc' } });
 
-        const uploadedFile: UploadedFile = {
-          id: entry.name,
-          name: entry.name,
-          folder: 'Uploads',
-          size: formatSize(fileStat.size),
-          type: ext ? ext.slice(1).toLowerCase() : 'file',
-          updatedAt: new Intl.DateTimeFormat('ru-RU', {
-            dateStyle: 'short',
-            timeStyle: 'short'
-          }).format(fileStat.mtime),
-          fileUrl: withBasePath(`/uploads/files/${encodeURIComponent(entry.name)}`),
-          uploadedAt: fileStat.birthtime.toISOString()
-        };
-
-        return uploadedFile;
-      })
-  );
-
-  files.sort((a, b) => (a.uploadedAt < b.uploadedAt ? 1 : -1));
-
-  return NextResponse.json({ files });
+  return NextResponse.json({
+    files: files.map((file) => ({
+      id: file.id,
+      name: file.name,
+      folder: 'Uploads',
+      size: formatSize(Number(file.sizeBytes)),
+      type: file.mimeType,
+      updatedAt: new Intl.DateTimeFormat('ru-RU', { dateStyle: 'short', timeStyle: 'short' }).format(file.uploadedAt),
+      fileUrl: withBasePath(`/uploads/files/${encodeURIComponent(file.key)}`),
+      uploadedAt: file.uploadedAt.toISOString()
+    }))
+  });
 }
 
 export async function POST(request: Request) {
+  const userId = getAuthorizedUserId();
+  if (!userId) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+
   await ensureFilesDir();
   const formData = await request.formData();
   const file = formData.get('file');
@@ -93,26 +78,39 @@ export async function POST(request: Request) {
 
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(filePath, buffer);
+  const fileStat = await stat(filePath);
 
-  return NextResponse.json({ ok: true, fileName: uniqueName, fileUrl: withBasePath(`/uploads/files/${encodeURIComponent(uniqueName)}`) });
+  const created = await prisma.fileAsset.create({
+    data: {
+      userId,
+      name: file.name,
+      key: uniqueName,
+      mimeType: file.type || 'application/octet-stream',
+      sizeBytes: BigInt(fileStat.size),
+      status: 'ready'
+    }
+  });
+
+  return NextResponse.json({ ok: true, fileName: created.name, fileUrl: withBasePath(`/uploads/files/${encodeURIComponent(uniqueName)}`) });
 }
 
 export async function DELETE(request: Request) {
-  await ensureFilesDir();
+  const userId = getAuthorizedUserId();
+  if (!userId) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+
   const { searchParams } = new URL(request.url);
   const fileId = searchParams.get('id');
+  if (!fileId) return NextResponse.json({ error: 'missing_id' }, { status: 400 });
 
-  if (!fileId) {
-    return NextResponse.json({ error: 'missing_id' }, { status: 400 });
-  }
-
-  const safeName = path.basename(fileId);
-  const targetPath = path.join(FILES_DIR, safeName);
+  const file = await prisma.fileAsset.findFirst({ where: { userId, id: fileId } });
+  if (!file) return NextResponse.json({ error: 'file_not_found' }, { status: 404 });
 
   try {
-    await unlink(targetPath);
-    return NextResponse.json({ ok: true });
+    await unlink(path.join(FILES_DIR, path.basename(file.key)));
   } catch {
-    return NextResponse.json({ error: 'file_not_found' }, { status: 404 });
+    // ignore missing physical file, still delete metadata
   }
+
+  await prisma.fileAsset.delete({ where: { id: file.id } });
+  return NextResponse.json({ ok: true });
 }

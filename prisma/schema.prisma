@@ -178,6 +178,8 @@ model Settings {
   userId            String   @unique
   theme             String   @default("system")
   language          String   @default("ru")
+  reducedMotion     Boolean  @default(false)
+  focusTaskIds      String?  @db.LongText
   notifications     Boolean  @default(true)
   musicAutoplay     Boolean  @default(false)
   qualityPreference String   @default("high")

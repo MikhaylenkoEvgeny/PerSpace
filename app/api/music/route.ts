@@ -1,6 +1,9 @@
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { mkdir, readdir, stat, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { prisma } from '@/lib/prisma';
+import { AUTH_COOKIE } from '@/lib/auth-cookie';
 
 const MUSIC_DIR = path.join(process.cwd(), 'public', 'uploads', 'music');
 const AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac', '.webm']);
@@ -10,15 +13,8 @@ function withBasePath(url: string) {
   return `${BASE_PATH}${url}`;
 }
 
-interface UploadedTrack {
-  id: string;
-  title: string;
-  artist: string;
-  album: string;
-  duration: string;
-  favorite: boolean;
-  fileUrl: string;
-  uploadedAt: string;
+function getAuthorizedUserId() {
+  return cookies().get(AUTH_COOKIE)?.value ?? null;
 }
 
 function sanitizeBaseName(name: string) {
@@ -35,40 +31,29 @@ async function ensureMusicDir() {
 }
 
 export async function GET() {
-  await ensureMusicDir();
-  const entries = await readdir(MUSIC_DIR, { withFileTypes: true });
+  const userId = getAuthorizedUserId();
+  if (!userId) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  const files = entries
-    .filter((entry) => entry.isFile())
-    .filter((entry) => AUDIO_EXTENSIONS.has(path.extname(entry.name).toLowerCase()));
+  const tracks = await prisma.musicTrack.findMany({ where: { userId }, include: { artist: true, album: true }, orderBy: { uploadedAt: 'desc' } });
 
-  const tracks = await Promise.all(
-    files.map(async (entry) => {
-      const ext = path.extname(entry.name);
-      const baseName = path.basename(entry.name, ext);
-      const fileStat = await stat(path.join(MUSIC_DIR, entry.name));
-
-      const track: UploadedTrack = {
-        id: entry.name,
-        title: baseName,
-        artist: 'Вы',
-        album: 'Uploaded',
-        duration: '—',
-        favorite: false,
-        fileUrl: withBasePath(`/uploads/music/${encodeURIComponent(entry.name)}`),
-        uploadedAt: fileStat.birthtime.toISOString()
-      };
-
-      return track;
-    })
-  );
-
-  tracks.sort((a, b) => (a.uploadedAt < b.uploadedAt ? 1 : -1));
-
-  return NextResponse.json({ tracks });
+  return NextResponse.json({
+    tracks: tracks.map((track) => ({
+      id: track.id,
+      title: track.title,
+      artist: track.artist?.name ?? 'Вы',
+      album: track.album?.title ?? 'Uploaded',
+      duration: track.durationSec > 0 ? `${Math.floor(track.durationSec / 60)}:${String(track.durationSec % 60).padStart(2, '0')}` : '—',
+      favorite: track.liked,
+      fileUrl: withBasePath(`/uploads/music/${encodeURIComponent(track.fileKey)}`),
+      uploadedAt: track.uploadedAt.toISOString()
+    }))
+  });
 }
 
 export async function POST(request: Request) {
+  const userId = getAuthorizedUserId();
+  if (!userId) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+
   await ensureMusicDir();
   const formData = await request.formData();
   const file = formData.get('file');
@@ -89,25 +74,36 @@ export async function POST(request: Request) {
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(filePath, buffer);
 
-  return NextResponse.json({ ok: true, fileName: uniqueName, fileUrl: withBasePath(`/uploads/music/${encodeURIComponent(uniqueName)}`) });
+  const created = await prisma.musicTrack.create({
+    data: {
+      userId,
+      title: path.basename(file.name, ext),
+      durationSec: 0,
+      fileKey: uniqueName,
+      liked: false
+    }
+  });
+
+  return NextResponse.json({ ok: true, trackId: created.id, fileUrl: withBasePath(`/uploads/music/${encodeURIComponent(uniqueName)}`) });
 }
 
 export async function DELETE(request: Request) {
-  await ensureMusicDir();
+  const userId = getAuthorizedUserId();
+  if (!userId) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+
   const { searchParams } = new URL(request.url);
   const trackId = searchParams.get('id');
+  if (!trackId) return NextResponse.json({ error: 'missing_id' }, { status: 400 });
 
-  if (!trackId) {
-    return NextResponse.json({ error: 'missing_id' }, { status: 400 });
-  }
-
-  const safeName = path.basename(trackId);
-  const targetPath = path.join(MUSIC_DIR, safeName);
+  const track = await prisma.musicTrack.findFirst({ where: { userId, id: trackId } });
+  if (!track) return NextResponse.json({ error: 'track_not_found' }, { status: 404 });
 
   try {
-    await unlink(targetPath);
-    return NextResponse.json({ ok: true });
+    await unlink(path.join(MUSIC_DIR, path.basename(track.fileKey)));
   } catch {
-    return NextResponse.json({ error: 'track_not_found' }, { status: 404 });
+    // ignore missing physical file, still delete metadata
   }
+
+  await prisma.musicTrack.delete({ where: { id: track.id } });
+  return NextResponse.json({ ok: true });
 }

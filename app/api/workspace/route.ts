@@ -4,35 +4,54 @@ import { prisma } from '@/lib/prisma';
 import { seedState } from '@/lib/seed';
 import { AUTH_COOKIE } from '@/lib/auth-cookie';
 import type { WorkspaceState } from '@/lib/types';
-
-function parseSnapshotPayload(payload: string): WorkspaceState {
-  try {
-    return JSON.parse(payload) as WorkspaceState;
-  } catch {
-    return seedState;
-  }
-}
+import {
+  buildWorkspaceState,
+  mapFileRecord,
+  mapNoteInput,
+  mapNoteRecord,
+  mapSettingsInput,
+  mapSettingsRecord,
+  mapTaskInput,
+  mapTaskRecord,
+  mapTrackRecord
+} from '@/lib/workspace-mappers';
 
 function getAuthorizedUserId() {
   return cookies().get(AUTH_COOKIE)?.value ?? null;
 }
 
 async function loadWorkspaceState(userId: string) {
-  const snapshot = await prisma.workspaceSnapshot.findUnique({ where: { userId } });
-  return snapshot ? parseSnapshotPayload(snapshot.payload) : seedState;
+  const [tasks, notes, files, tracks, settings] = await prisma.$transaction([
+    prisma.task.findMany({ where: { userId }, orderBy: { createdAt: 'desc' } }),
+    prisma.note.findMany({ where: { userId, deletedAt: null, archived: false }, orderBy: [{ pinned: 'desc' }, { updatedAt: 'desc' }] }),
+    prisma.fileAsset.findMany({ where: { userId }, orderBy: { uploadedAt: 'desc' } }),
+    prisma.musicTrack.findMany({ where: { userId }, include: { artist: true, album: true }, orderBy: { uploadedAt: 'desc' } }),
+    prisma.settings.findUnique({ where: { userId } })
+  ]);
+
+  const state = buildWorkspaceState({
+    tasks: tasks.length ? tasks.map(mapTaskRecord) : seedState.tasks,
+    notes: notes.length ? notes.map(mapNoteRecord) : seedState.notes,
+    files: files.map(mapFileRecord),
+    tracks: tracks.map(mapTrackRecord),
+    settings: settings ? mapSettingsRecord(settings) : seedState.settings
+  });
+
+  return state;
 }
 
 async function saveWorkspaceState(userId: string, state: WorkspaceState) {
-  return prisma.workspaceSnapshot.upsert({
-    where: { userId },
-    create: {
-      userId,
-      payload: JSON.stringify(state)
-    },
-    update: {
-      payload: JSON.stringify(state)
-    }
-  });
+  await prisma.$transaction([
+    prisma.task.deleteMany({ where: { userId } }),
+    prisma.note.deleteMany({ where: { userId } }),
+    prisma.task.createMany({ data: state.tasks.map((task) => mapTaskInput(userId, task)) }),
+    prisma.note.createMany({ data: state.notes.map((note) => mapNoteInput(userId, note)) }),
+    prisma.settings.upsert({
+      where: { userId },
+      create: mapSettingsInput(userId, state.settings),
+      update: mapSettingsInput(userId, state.settings)
+    })
+  ]);
 }
 
 export async function GET() {
@@ -65,8 +84,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const snapshot = await saveWorkspaceState(userId, body.state);
-    return NextResponse.json({ ok: true, updatedAt: snapshot.updatedAt });
+    await saveWorkspaceState(userId, body.state);
+    return NextResponse.json({ ok: true, syncedAt: new Date().toISOString() });
   } catch (error) {
     console.error('workspace_save_failed', error);
     return NextResponse.json({ error: 'workspace_save_failed' }, { status: 500 });
