@@ -14,6 +14,7 @@ const nav = [
   { href: '/tasks', label: 'Tasks', icon: CheckSquare },
   { href: '/notes', label: 'Notes', icon: Notebook },
   { href: '/search', label: 'Search', icon: Search },
+  { href: '/review', label: 'Review', icon: ClipboardCheck },
   { href: '/settings', label: 'Settings', icon: Settings }
 ];
 
@@ -90,6 +91,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </div>
 
+      <QuickCapture />
       <GlobalMusicPlayer />
 
       <nav className="surface fixed bottom-3 left-3 right-3 z-50 rounded-2xl p-2 md:hidden">
