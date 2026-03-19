@@ -1,24 +1,44 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { GripVertical, X } from 'lucide-react';
 import { useWorkspace } from '@/components/workspace-provider';
 import type { TaskStatus } from '@/lib/types';
 
 const STATUSES: TaskStatus[] = ['inbox', 'today', 'upcoming', 'completed'];
 
+const STATUS_META: Record<TaskStatus, { title: string; description: string }> = {
+  inbox: {
+    title: 'Inbox focus',
+    description: 'Сюда падают сырые входящие. Главная цель — быстро решить: today, upcoming или done.'
+  },
+  today: {
+    title: 'Today focus',
+    description: 'Это активный план дня. Оставляй здесь только то, что действительно готов двигать сейчас.'
+  },
+  upcoming: {
+    title: 'Upcoming focus',
+    description: 'Здесь задачи, которые важны, но не требуют внимания прямо в эту минуту.'
+  },
+  completed: {
+    title: 'Completed focus',
+    description: 'Фиксируй завершённое, чтобы видеть momentum и не терять ощущение прогресса.'
+  }
+};
+
 export default function TasksPage() {
   const { state, addTask, updateTask, toggleTask, removeTask, toggleFocusTask } = useWorkspace();
   const [draft, setDraft] = useState('');
+  const [tab, setTab] = useState<TaskStatus>('inbox');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<TaskStatus | null>(null);
 
-  const groupedTasks = useMemo(
-    () => Object.fromEntries(STATUSES.map((status) => [status, state.tasks.filter((task) => task.status === status)])) as Record<TaskStatus, typeof state.tasks>,
-    [state]
-  );
+  const groupedTasks = Object.fromEntries(
+    STATUSES.map((status) => [status, state.tasks.filter((task) => task.status === status)])
+  ) as Record<TaskStatus, typeof state.tasks>;
   const selectedTask = state.tasks.find((task) => task.id === selectedTaskId) ?? null;
+  const activeTabTasks = groupedTasks[tab];
 
   const handleCreateTask = () => {
     addTask(draft);
@@ -30,6 +50,7 @@ export default function TasksPage() {
     updateTask(draggedTaskId, { status });
     setDraggedTaskId(null);
     setDragOverStatus(null);
+    setTab(status);
   };
 
   return (
@@ -38,8 +59,15 @@ export default function TasksPage() {
         <h1 className="text-2xl font-semibold">Tasks</h1>
         <p className="mt-2 text-fg/70">Теперь задачи можно перетаскивать мышкой между inbox, today, upcoming и completed.</p>
         <div className="mt-4 flex gap-2">
-          <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Например: Позвонить Андрею завтра в 15:00" className="w-full rounded-xl border border-fg/15 bg-panel px-3 py-2 outline-none focus:ring-2 focus:ring-accent/50" />
-          <button onClick={handleCreateTask} className="rounded-xl bg-accent px-4 py-2 text-white">Добавить</button>
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Например: Позвонить Андрею завтра в 15:00"
+            className="w-full rounded-xl border border-fg/15 bg-panel px-3 py-2 outline-none focus:ring-2 focus:ring-accent/50"
+          />
+          <button onClick={handleCreateTask} className="rounded-xl bg-accent px-4 py-2 text-white">
+            Добавить
+          </button>
         </div>
       </div>
 
@@ -63,11 +91,48 @@ export default function TasksPage() {
           </div>
           <div className="flex flex-wrap gap-2 text-xs text-fg/60">
             {STATUSES.map((status) => (
-              <span key={status} className="rounded-xl bg-muted px-3 py-2">{status}: {groupedTasks[status].length}</span>
+              <span key={status} className="rounded-xl bg-muted px-3 py-2">
+                {status}: {groupedTasks[status].length}
+              </span>
             ))}
           </div>
         </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {STATUSES.map((status) => (
+            <button
+              key={status}
+              type="button"
+              onClick={() => setTab(status)}
+              className={`rounded-xl px-3 py-2 text-sm capitalize ${tab === status ? 'bg-accent text-white' : 'bg-panel'}`}
+            >
+              {status}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {tab === 'inbox' ? (
+        <div className="glass rounded-2xl p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">{STATUS_META[tab].title}</h2>
+              <p className="text-sm text-fg/65">{STATUS_META[tab].description}</p>
+            </div>
+            <span className="rounded-xl bg-muted px-3 py-2 text-sm">{activeTabTasks.length} задач</span>
+          </div>
+        </div>
+      ) : (
+        <div className="glass rounded-2xl p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">{STATUS_META[tab].title}</h2>
+              <p className="text-sm text-fg/65">{STATUS_META[tab].description}</p>
+            </div>
+            <span className="rounded-xl bg-muted px-3 py-2 text-sm">{activeTabTasks.length} задач</span>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-4 xl:grid-cols-4 md:grid-cols-2">
         {STATUSES.map((status) => (
@@ -113,7 +178,10 @@ export default function TasksPage() {
                       <p className="mt-1 text-xs text-fg/60">{task.due ?? 'Без дедлайна'} · {task.priority}</p>
                       {task.note ? <p className="mt-2 line-clamp-3 text-xs text-fg/60">{task.note}</p> : null}
                     </button>
-                    <button onClick={() => toggleFocusTask(task.id)} className={`shrink-0 rounded-lg px-3 py-1 text-xs ${state.settings.focusTaskIds.includes(task.id) ? 'bg-violet-500 text-white' : 'bg-panel'}`}>
+                    <button
+                      onClick={() => toggleFocusTask(task.id)}
+                      className={`shrink-0 rounded-lg px-3 py-1 text-xs ${state.settings.focusTaskIds.includes(task.id) ? 'bg-violet-500 text-white' : 'bg-panel'}`}
+                    >
                       {state.settings.focusTaskIds.includes(task.id) ? 'Убрать из Top 3' : 'В Top 3'}
                     </button>
                   </div>
