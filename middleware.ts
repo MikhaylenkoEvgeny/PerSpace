@@ -1,7 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-
-const AUTH_COOKIE = 'perspace-auth';
-const AUTH_VALUE = 'authorized';
+import { AUTH_COOKIE } from '@/lib/auth-cookie';
 
 function normalizePath(pathname: string) {
   return pathname.startsWith('/perSpace') ? pathname.replace('/perSpace', '') || '/' : pathname;
@@ -22,7 +20,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const isAuthorized = request.cookies.get(AUTH_COOKIE)?.value === AUTH_VALUE;
+  const userId = request.cookies.get(AUTH_COOKIE)?.value;
+  const isAuthorized = Boolean(userId);
 
   if (isAuthorized && normalizedPath === '/login') {
     return NextResponse.redirect(new URL('/perSpace/', request.url));
