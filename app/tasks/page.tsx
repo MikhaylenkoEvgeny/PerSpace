@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { GripVertical, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useWorkspace } from '@/components/workspace-provider';
 import type { TaskStatus } from '@/lib/types';
 
@@ -42,6 +43,18 @@ export default function TasksPage() {
           <button onClick={handleCreateTask} className="rounded-xl bg-accent px-4 py-2 text-white">Добавить</button>
         </div>
       </div>
+
+      {tab === 'inbox' ? (
+        <div className="glass rounded-2xl p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Inbox triage</h2>
+              <p className="text-sm text-fg/65">Быстро реши: это задача на сегодня, позже или уже можно закрыть.</p>
+            </div>
+            <p className="text-sm text-fg/55">Лучший ритуал: разобрать inbox до нуля утром и вечером.</p>
+          </div>
+        </div>
+      ) : null}
 
       <div className="glass rounded-2xl p-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
