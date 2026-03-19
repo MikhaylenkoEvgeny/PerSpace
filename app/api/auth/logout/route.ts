@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-
-const AUTH_COOKIE = 'perspace-auth';
+import { AUTH_COOKIE } from '@/lib/auth-cookie';
 
 export async function POST() {
   const response = NextResponse.json({ ok: true });

@@ -1,9 +1,9 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function LoginPage() {
+function LoginForm() {
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -78,5 +78,13 @@ export default function LoginPage() {
 
       {error ? <p className="mt-3 text-sm text-red-500">{error}</p> : null}
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-md rounded-2xl glass p-6 md:p-8 text-sm text-fg/70">Загрузка формы входа…</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }
