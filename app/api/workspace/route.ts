@@ -1,8 +1,8 @@
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { seedState } from '@/lib/seed';
-
-const USER_KEY = 'local-single-user';
+import { AUTH_COOKIE } from '@/lib/auth-cookie';
 
 function parseSnapshotPayload(payload: string) {
   try {
@@ -12,24 +12,40 @@ function parseSnapshotPayload(payload: string) {
   }
 }
 
+function getAuthorizedUserId() {
+  return cookies().get(AUTH_COOKIE)?.value ?? null;
+}
+
 export async function GET() {
-  const snapshot = await prisma.workspaceSnapshot.findUnique({ where: { userKey: USER_KEY } });
+  const userId = getAuthorizedUserId();
+
+  if (!userId) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  }
+
+  const snapshot = await prisma.workspaceSnapshot.findUnique({ where: { userId } });
   const state = snapshot ? parseSnapshotPayload(snapshot.payload) : seedState;
 
   return NextResponse.json({ state });
 }
 
 export async function POST(request: Request) {
-  const body = await request.json();
+  const userId = getAuthorizedUserId();
+
+  if (!userId) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  }
+
+  const body = await request.json().catch(() => null);
 
   if (!body || typeof body !== 'object' || !('state' in body)) {
     return NextResponse.json({ error: 'invalid_payload' }, { status: 400 });
   }
 
   const snapshot = await prisma.workspaceSnapshot.upsert({
-    where: { userKey: USER_KEY },
+    where: { userId },
     create: {
-      userKey: USER_KEY,
+      userId,
       payload: JSON.stringify(body.state)
     },
     update: {
