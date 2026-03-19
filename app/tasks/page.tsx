@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react';
 import { GripVertical, X } from 'lucide-react';
-import { X } from 'lucide-react';
 import { useWorkspace } from '@/components/workspace-provider';
 import type { TaskStatus } from '@/lib/types';
 

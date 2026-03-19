@@ -24,6 +24,7 @@ model User {
   tracks       MusicTrack[]
   playlists    Playlist[]
   settings     Settings?
+  workspace    WorkspaceSnapshot?
 }
 
 model TaskList {
@@ -186,8 +187,10 @@ model Settings {
 
 model WorkspaceSnapshot {
   id        String   @id @default(cuid())
-  userKey   String   @unique
+  userId    String   @unique
   payload   String   @db.LongText
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
