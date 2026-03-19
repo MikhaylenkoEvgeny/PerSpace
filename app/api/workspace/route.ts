@@ -6,9 +6,11 @@ import { AUTH_COOKIE } from '@/lib/auth-cookie';
 
 function parseSnapshotPayload(payload: string) {
   try {
-    return JSON.parse(payload);
-  } catch {
-    return seedState;
+    const state = await loadWorkspaceState();
+    return NextResponse.json({ state });
+  } catch (error) {
+    console.error('workspace_load_failed', error);
+    return NextResponse.json({ state: null, error: 'database_unavailable' }, { status: 503 });
   }
 }
 
