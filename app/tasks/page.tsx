@@ -71,6 +71,18 @@ export default function TasksPage() {
         </div>
       </div>
 
+      {tab === 'inbox' ? (
+        <div className="glass rounded-2xl p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Inbox triage</h2>
+              <p className="text-sm text-fg/65">Быстро реши: это задача на сегодня, позже или уже можно закрыть.</p>
+            </div>
+            <p className="text-sm text-fg/55">Лучший ритуал: разобрать inbox до нуля утром и вечером.</p>
+          </div>
+        </div>
+      ) : null}
+
       <div className="glass rounded-2xl p-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
