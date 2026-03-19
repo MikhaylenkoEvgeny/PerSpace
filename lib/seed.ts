@@ -21,6 +21,7 @@ export const seedState: WorkspaceState = {
   settings: {
     theme: 'system',
     language: 'ru',
-    reducedMotion: false
+    reducedMotion: false,
+    focusTaskIds: ['t1']
   }
 };
