@@ -41,6 +41,7 @@ export interface SettingsState {
   theme: 'light' | 'dark' | 'system';
   language: 'ru' | 'en';
   reducedMotion: boolean;
+  focusTaskIds: string[];
 }
 
 export interface WorkspaceState {
