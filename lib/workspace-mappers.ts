@@ -1,4 +1,4 @@
-import type { FileAsset, MusicTrack, Note, Settings, Task } from '@prisma/client';
+import type { FileAsset, MusicTrack, Note, Task } from '@prisma/client';
 import type { FileItem, NoteItem, SettingsState, TaskItem, TrackItem, WorkspaceState } from '@/lib/types';
 
 function parseJsonArray(value: string | null | undefined) {
@@ -80,7 +80,14 @@ export function mapNoteInput(userId: string, note: NoteItem) {
   };
 }
 
-export function mapSettingsRecord(settings: Pick<Settings, 'theme' | 'language' | 'reducedMotion' | 'focusTaskIds'> | null | undefined): SettingsState {
+type PersistedSettings = {
+  theme?: string | null;
+  language?: string | null;
+  reducedMotion?: boolean | null;
+  focusTaskIds?: string | null;
+};
+
+export function mapSettingsRecord(settings: PersistedSettings | null | undefined): SettingsState {
   return {
     theme: settings?.theme === 'light' || settings?.theme === 'dark' || settings?.theme === 'system' ? settings.theme : 'system',
     language: settings?.language === 'en' || settings?.language === 'ru' ? settings.language : 'ru',

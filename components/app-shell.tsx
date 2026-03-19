@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, CheckSquare, Notebook, Search, Settings } from 'lucide-react';
+import { Home, CheckSquare, Notebook, Search, Settings, ClipboardCheck } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 import { GlobalMusicPlayer } from '@/components/global-music-player';
