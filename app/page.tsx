@@ -1,161 +1,125 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo } from 'react';
-import { ArrowRight, CalendarDays, CheckCircle2, Clock3, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useWorkspace } from '@/components/workspace-provider';
 
-function Panel({ title, children, eyebrow }: { title: string; eyebrow?: string; children: React.ReactNode }) {
+function Section({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <section className="glass rounded-2xl p-5 shadow-glow">
-      {eyebrow ? <p className="text-xs uppercase tracking-[0.2em] text-fg/55">{eyebrow}</p> : null}
-      <h2 className="mb-4 mt-1 text-base font-semibold">{title}</h2>
+    <section className="surface p-5 md:p-6">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold tracking-[-0.02em]">{title}</h2>
+        {action}
+      </div>
       {children}
     </section>
   );
 }
 
 export default function HomePage() {
-  const { state, updateTask, toggleFocusTask } = useWorkspace();
+  const { state, updateTask } = useWorkspace();
 
-  const todayTasks = useMemo(() => state.tasks.filter((task) => task.status === 'today'), [state.tasks]);
-  const inboxTasks = useMemo(() => state.tasks.filter((task) => task.status === 'inbox'), [state.tasks]);
-  const upcomingTasks = useMemo(() => state.tasks.filter((task) => task.status === 'upcoming'), [state.tasks]);
-  const completedTasks = useMemo(() => state.tasks.filter((task) => task.status === 'completed'), [state.tasks]);
-  const pinnedNotes = useMemo(() => state.notes.filter((note) => note.pinned), [state.notes]);
-  const focusTask = todayTasks[0] ?? inboxTasks[0] ?? state.tasks[0];
-  const topFocusTasks = state.settings.focusTaskIds
+  const todayTasks = state.tasks.filter((task) => task.status === 'today');
+  const inboxTasks = state.tasks.filter((task) => task.status === 'inbox');
+  const focusTasks = state.settings.focusTaskIds
     .map((taskId) => state.tasks.find((task) => task.id === taskId))
-    .filter((task): task is NonNullable<typeof task> => Boolean(task));
+    .filter((task): task is NonNullable<typeof task> => Boolean(task))
+    .slice(0, 3);
 
-  const moveTask = (taskId: string, status: 'today' | 'upcoming' | 'completed') => {
-    updateTask(taskId, { status });
-  };
+  const primaryTask = focusTasks[0] ?? todayTasks[0] ?? inboxTasks[0] ?? state.tasks[0] ?? null;
 
   return (
-    <div className="space-y-4">
-      <section className="glass rounded-3xl p-6 md:p-10">
-        <p className="text-sm text-fg/60">Today operating view</p>
-        <h1 className="mt-2 text-3xl font-semibold md:text-5xl">Не просто список — а ясный план дня</h1>
-        <p className="mt-3 max-w-2xl text-fg/70">Главный экран теперь отвечает на три вопроса: что важно сегодня, что нужно разложить из inbox и что уже движется в правильном направлении.</p>
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl bg-panel/70 p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-fg/55">Today</p>
-            <p className="mt-2 text-3xl font-semibold">{todayTasks.length}</p>
-            <p className="mt-1 text-sm text-fg/65">задач на сегодня</p>
+    <div className="page-shell">
+      <header className="page-header">
+        <p className="text-sm font-medium text-fg/50">Today</p>
+        <h1 className="page-title">Один спокойный экран, чтобы понять, что важно прямо сейчас.</h1>
+        <p className="page-subtitle">Home больше не пытается быть всем сразу. Только фокус, только ближайшие задачи, только ясное следующее действие.</p>
+      </header>
+
+      <section className="surface p-6 md:p-8">
+        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-2xl">
+            <p className="text-sm font-medium text-fg/50">Primary focus</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] md:text-4xl">
+              {primaryTask ? primaryTask.title : 'Сегодня пока нет главной задачи'}
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-fg/68">
+              {primaryTask?.note ?? 'Собери одну meaningful задачу в Tasks или через Quick Capture и не распыляй внимание.'}
+            </p>
           </div>
-          <div className="rounded-2xl bg-panel/70 p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-fg/55">Inbox</p>
-            <p className="mt-2 text-3xl font-semibold">{inboxTasks.length}</p>
-            <p className="mt-1 text-sm text-fg/65">нужно разложить</p>
-          </div>
-          <div className="rounded-2xl bg-panel/70 p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-fg/55">Momentum</p>
-            <p className="mt-2 text-3xl font-semibold">{completedTasks.length}</p>
-            <p className="mt-1 text-sm text-fg/65">уже завершено</p>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/tasks" className="inline-flex h-10 items-center rounded-xl bg-fg px-4 text-sm font-medium text-white">
+              Открыть Tasks
+            </Link>
+            <button
+              type="button"
+              onClick={() => primaryTask && updateTask(primaryTask.id, { status: 'completed' })}
+              className="inline-flex h-10 items-center rounded-xl bg-muted px-4 text-sm font-medium text-fg/80"
+              disabled={!primaryTask}
+            >
+              Завершить
+            </button>
           </div>
         </div>
-        <div className="mt-6 flex flex-wrap gap-2">
-          <Link href="/tasks" className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white shadow-glow">Открыть triage</Link>
-          <Link href="/notes" className="rounded-xl bg-muted px-4 py-2 text-sm font-medium">Открыть заметки</Link>
-          <Link href="/search" className="rounded-xl bg-muted px-4 py-2 text-sm font-medium">Command search</Link>
-          <Link href="/review" className="rounded-xl bg-muted px-4 py-2 text-sm font-medium">Weekly review</Link>
-          <Link href="/shutdown" className="rounded-xl bg-muted px-4 py-2 text-sm font-medium">Shutdown ritual</Link>
+
+        <div className="mt-8 grid gap-3 md:grid-cols-3">
+          <div className="surface-muted p-4">
+            <p className="text-xs uppercase tracking-[0.16em] text-fg/45">Today</p>
+            <p className="mt-2 text-3xl font-semibold tracking-[-0.03em]">{todayTasks.length}</p>
+          </div>
+          <div className="surface-muted p-4">
+            <p className="text-xs uppercase tracking-[0.16em] text-fg/45">Inbox</p>
+            <p className="mt-2 text-3xl font-semibold tracking-[-0.03em]">{inboxTasks.length}</p>
+          </div>
+          <div className="surface-muted p-4">
+            <p className="text-xs uppercase tracking-[0.16em] text-fg/45">Top 3</p>
+            <p className="mt-2 text-3xl font-semibold tracking-[-0.03em]">{focusTasks.length}</p>
+          </div>
         </div>
       </section>
 
-      <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
-        <Panel title="Фокус дня" eyebrow="Priority now">
-          {focusTask ? (
-            <div className="rounded-2xl bg-gradient-to-br from-violet-500/15 to-cyan-500/15 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-fg/55">Suggested next task</p>
-                  <h3 className="mt-2 text-xl font-semibold">{focusTask.title}</h3>
-                  <p className="mt-2 text-sm text-fg/70">{focusTask.note ?? 'Добавь execution note, чтобы превратить задачу в конкретный next step.'}</p>
+      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+        <Section title="Today list" action={<Link href="/tasks" className="text-sm text-fg/55 hover:text-fg">Open all</Link>}>
+          <div className="space-y-2">
+            {(todayTasks.length ? todayTasks : state.tasks.slice(0, 3)).map((task) => (
+              <div key={task.id} className="flex items-center justify-between gap-3 rounded-xl border border-fg/10 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{task.title}</p>
+                  <p className="mt-1 text-sm text-fg/55">{task.due ?? 'Без дедлайна'}</p>
                 </div>
-                <Sparkles size={18} className="shrink-0 text-accent" />
+                <button type="button" onClick={() => updateTask(task.id, { status: 'completed' })} className="text-sm text-fg/55 hover:text-fg">
+                  Done
+                </button>
               </div>
-              <div className="mt-4 flex flex-wrap gap-2 text-sm text-fg/70">
-                <span className="rounded-xl bg-panel/70 px-3 py-2">{focusTask.status}</span>
-                <span className="rounded-xl bg-panel/70 px-3 py-2">{focusTask.priority}</span>
-                <span className="rounded-xl bg-panel/70 px-3 py-2">{focusTask.due ?? 'Без дедлайна'}</span>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-fg/65">Пока нет задач. Захвати первую через Quick Capture или Tasks.</p>
-          )}
-        </Panel>
-
-        <Panel title="Ритм недели" eyebrow="Signals">
-          <div className="space-y-3 text-sm">
-            <div className="flex items-center justify-between rounded-2xl bg-muted/40 p-3">
-              <span className="inline-flex items-center gap-2"><CalendarDays size={16} /> Upcoming</span>
-              <strong>{upcomingTasks.length}</strong>
-            </div>
-            <div className="flex items-center justify-between rounded-2xl bg-muted/40 p-3">
-              <span className="inline-flex items-center gap-2"><Clock3 size={16} /> Inbox to triage</span>
-              <strong>{inboxTasks.length}</strong>
-            </div>
-            <div className="flex items-center justify-between rounded-2xl bg-muted/40 p-3">
-              <span className="inline-flex items-center gap-2"><CheckCircle2 size={16} /> Completed</span>
-              <strong>{completedTasks.length}</strong>
-            </div>
+            ))}
           </div>
-        </Panel>
-      </div>
+        </Section>
 
-
-      <Panel title="Top 3 focus" eyebrow="Tomorrow / today commitment">
-        <div className="space-y-3">
-          {topFocusTasks.map((task, index) => (
-            <div key={task.id} className="flex items-center justify-between rounded-2xl bg-muted/40 p-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-fg/55">Focus slot {index + 1}</p>
-                <p className="mt-1 font-medium">{task.title}</p>
-                <p className="text-sm text-fg/60">{task.status} · {task.due ?? 'Без дедлайна'}</p>
-              </div>
-              <button type="button" onClick={() => toggleFocusTask(task.id)} className="rounded-xl bg-panel px-3 py-2 text-xs">Убрать</button>
-            </div>
-          ))}
-          {!topFocusTasks.length ? <p className="text-sm text-fg/65">Пока не выбран Top 3. Отметь до трёх задач на shutdown ritual или на странице задач.</p> : null}
-        </div>
-      </Panel>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Inbox triage" eyebrow="60-second ritual">
-          <div className="space-y-3">
-            {inboxTasks.slice(0, 4).map((task) => (
-              <div key={task.id} className="rounded-2xl bg-muted/40 p-4">
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p className="font-medium">{task.title}</p>
-                    <p className="mt-1 text-sm text-fg/60">{task.note ?? 'Определи: это нужно сегодня, позже или можно закрыть?'}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button type="button" onClick={() => moveTask(task.id, 'today')} className="rounded-xl bg-accent px-3 py-2 text-xs text-white">Today</button>
-                    <button type="button" onClick={() => moveTask(task.id, 'upcoming')} className="rounded-xl bg-panel px-3 py-2 text-xs">Upcoming</button>
-                    <button type="button" onClick={() => moveTask(task.id, 'completed')} className="rounded-xl bg-panel px-3 py-2 text-xs">Done</button>
-                  </div>
+        <Section
+          title="Inbox needs triage"
+          action={
+            <Link href="/tasks" className="inline-flex items-center gap-1 text-sm text-fg/55 hover:text-fg">
+              Open Tasks <ArrowRight size={14} />
+            </Link>
+          }
+        >
+          <div className="space-y-2">
+            {inboxTasks.slice(0, 3).map((task) => (
+              <div key={task.id} className="rounded-xl border border-fg/10 px-4 py-3">
+                <p className="font-medium">{task.title}</p>
+                <div className="mt-3 flex gap-2">
+                  <button type="button" onClick={() => updateTask(task.id, { status: 'today' })} className="h-9 rounded-lg bg-fg px-3 text-sm text-white">
+                    Today
+                  </button>
+                  <button type="button" onClick={() => updateTask(task.id, { status: 'upcoming' })} className="h-9 rounded-lg bg-muted px-3 text-sm text-fg/75">
+                    Later
+                  </button>
                 </div>
               </div>
             ))}
-            {!inboxTasks.length ? <p className="text-sm text-fg/65">Inbox пуст — хороший сигнал. Можно перейти к today или weekly review.</p> : null}
-            {inboxTasks.length ? <Link href="/review" className="inline-flex items-center gap-2 text-sm text-accent">Открыть weekly review <ArrowRight size={14} /></Link> : null}
+            {!inboxTasks.length ? <p className="text-sm text-fg/55">Inbox пуст. Это именно то ощущение порядка, которое нужно сохранить.</p> : null}
           </div>
-        </Panel>
-
-        <Panel title="Pinned context" eyebrow="What supports execution">
-          <div className="space-y-3">
-            {pinnedNotes.slice(0, 3).map((note) => (
-              <article key={note.id} className="rounded-2xl bg-gradient-to-br from-violet-500/15 to-cyan-500/15 p-4">
-                <h3 className="font-medium">{note.title}</h3>
-                <p className="mt-2 line-clamp-3 text-sm text-fg/70">{note.content}</p>
-              </article>
-            ))}
-            {!pinnedNotes.length ? <p className="text-sm text-fg/65">Пока нет pinned notes. Закрепи заметку, чтобы она работала как постоянный контекст для недели.</p> : null}
-          </div>
-        </Panel>
+        </Section>
       </div>
 
       <Panel title="Recent library context" eyebrow="Files + music">

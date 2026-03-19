@@ -5,159 +5,79 @@ import { GripVertical, X } from 'lucide-react';
 import { useWorkspace } from '@/components/workspace-provider';
 import type { TaskStatus } from '@/lib/types';
 
-const STATUSES: TaskStatus[] = ['inbox', 'today', 'upcoming', 'completed'];
-
-const STATUS_META: Record<TaskStatus, { title: string; description: string }> = {
-  inbox: {
-    title: 'Inbox focus',
-    description: 'Сюда падают сырые входящие. Главная цель — быстро решить: today, upcoming или done.'
-  },
-  today: {
-    title: 'Today focus',
-    description: 'Это активный план дня. Оставляй здесь только то, что действительно готов двигать сейчас.'
-  },
-  upcoming: {
-    title: 'Upcoming focus',
-    description: 'Здесь задачи, которые важны, но не требуют внимания прямо в эту минуту.'
-  },
-  completed: {
-    title: 'Completed focus',
-    description: 'Фиксируй завершённое, чтобы видеть momentum и не терять ощущение прогресса.'
-  }
-};
+const STATUSES: Array<{ key: TaskStatus; label: string }> = [
+  { key: 'inbox', label: 'Inbox' },
+  { key: 'today', label: 'Today' },
+  { key: 'upcoming', label: 'Upcoming' },
+  { key: 'completed', label: 'Completed' }
+];
 
 export default function TasksPage() {
-  const { state, addTask, updateTask, toggleTask, removeTask, toggleFocusTask } = useWorkspace();
+  const { state, addTask, updateTask, toggleTask, removeTask } = useWorkspace();
   const [draft, setDraft] = useState('');
-  const [tab, setTab] = useState<TaskStatus>('inbox');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<TaskStatus | null>(null);
 
-  const groupedTasks = Object.fromEntries(
-    STATUSES.map((status) => [status, state.tasks.filter((task) => task.status === status)])
-  ) as Record<TaskStatus, typeof state.tasks>;
+  const groupedTasks = Object.fromEntries(STATUSES.map(({ key }) => [key, state.tasks.filter((task) => task.status === key)])) as Record<TaskStatus, typeof state.tasks>;
   const selectedTask = state.tasks.find((task) => task.id === selectedTaskId) ?? null;
-  const activeTabTasks = groupedTasks[tab];
 
-  const handleCreateTask = () => {
+  const createTask = () => {
     addTask(draft);
     setDraft('');
   };
 
-  const handleDropToStatus = (status: TaskStatus) => {
+  const moveTask = (status: TaskStatus) => {
     if (!draggedTaskId) return;
     updateTask(draggedTaskId, { status });
     setDraggedTaskId(null);
     setDragOverStatus(null);
-    setTab(status);
   };
 
   return (
-    <div className="space-y-4">
-      <div className="glass rounded-2xl p-6">
-        <h1 className="text-2xl font-semibold">Tasks</h1>
-        <p className="mt-2 text-fg/70">Теперь задачи можно перетаскивать мышкой между inbox, today, upcoming и completed.</p>
-        <div className="mt-4 flex gap-2">
+    <div className="page-shell">
+      <header className="page-header">
+        <p className="text-sm font-medium text-fg/50">Tasks</p>
+        <h1 className="page-title">Чистая операционная доска без визуального шума.</h1>
+        <p className="page-subtitle">Один экран для triage, execution и завершения. Никаких лишних блоков между тобой и задачами.</p>
+      </header>
+
+      <section className="surface p-5 md:p-6">
+        <div className="flex flex-col gap-3 md:flex-row">
           <input
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="Например: Позвонить Андрею завтра в 15:00"
-            className="w-full rounded-xl border border-fg/15 bg-panel px-3 py-2 outline-none focus:ring-2 focus:ring-accent/50"
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder="Добавить задачу"
+            className="h-11 flex-1 rounded-xl border border-fg/10 bg-transparent px-4 text-sm outline-none focus:ring-2 focus:ring-accent/25"
           />
-          <button onClick={handleCreateTask} className="rounded-xl bg-accent px-4 py-2 text-white">
-            Добавить
+          <button onClick={createTask} className="h-11 rounded-xl bg-fg px-4 text-sm font-medium text-white">
+            Create task
           </button>
         </div>
-      </div>
-
-      {tab === 'inbox' ? (
-        <div className="glass rounded-2xl p-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold">Inbox triage</h2>
-              <p className="text-sm text-fg/65">Быстро реши: это задача на сегодня, позже или уже можно закрыть.</p>
-            </div>
-            <p className="text-sm text-fg/55">Лучший ритуал: разобрать inbox до нуля утром и вечером.</p>
-          </div>
-        </div>
-      ) : null}
-
-      <div className="glass rounded-2xl p-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold">Drag & drop board</h2>
-            <p className="text-sm text-fg/65">Тяни карточку за любую часть и бросай в нужную колонку, чтобы быстро разложить день.</p>
-          </div>
-          <div className="flex flex-wrap gap-2 text-xs text-fg/60">
-            {STATUSES.map((status) => (
-              <span key={status} className="rounded-xl bg-muted px-3 py-2">
-                {status}: {groupedTasks[status].length}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          {STATUSES.map((status) => (
-            <button
-              key={status}
-              type="button"
-              onClick={() => setTab(status)}
-              className={`rounded-xl px-3 py-2 text-sm capitalize ${tab === status ? 'bg-accent text-white' : 'bg-panel'}`}
-            >
-              {status}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {tab === 'inbox' ? (
-        <div className="glass rounded-2xl p-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold">{STATUS_META[tab].title}</h2>
-              <p className="text-sm text-fg/65">{STATUS_META[tab].description}</p>
-            </div>
-            <span className="rounded-xl bg-muted px-3 py-2 text-sm">{activeTabTasks.length} задач</span>
-          </div>
-        </div>
-      ) : (
-        <div className="glass rounded-2xl p-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold">{STATUS_META[tab].title}</h2>
-              <p className="text-sm text-fg/65">{STATUS_META[tab].description}</p>
-            </div>
-            <span className="rounded-xl bg-muted px-3 py-2 text-sm">{activeTabTasks.length} задач</span>
-          </div>
-        </div>
-      )}
+      </section>
 
       <div className="grid gap-4 xl:grid-cols-4 md:grid-cols-2">
-        {STATUSES.map((status) => (
+        {STATUSES.map(({ key, label }) => (
           <section
-            key={status}
+            key={key}
             onDragOver={(event) => {
               event.preventDefault();
-              setDragOverStatus(status);
+              setDragOverStatus(key);
             }}
-            onDragLeave={() => setDragOverStatus((current) => (current === status ? null : current))}
-            onDrop={() => handleDropToStatus(status)}
-            className={`glass min-h-[16rem] rounded-2xl p-4 transition ${dragOverStatus === status ? 'border-accent/60 bg-accent/10' : ''}`}
+            onDragLeave={() => setDragOverStatus((current) => (current === key ? null : current))}
+            onDrop={() => moveTask(key)}
+            className={`surface p-4 ${dragOverStatus === key ? 'ring-2 ring-accent/30' : ''}`}
           >
-            <div className="flex items-center justify-between gap-3">
+            <div className="mb-4 flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-fg/55">Lane</p>
-                <h2 className="mt-1 text-lg font-semibold capitalize">{status}</h2>
+                <p className="text-xs uppercase tracking-[0.16em] text-fg/45">Lane</p>
+                <h2 className="mt-1 text-lg font-semibold tracking-[-0.02em]">{label}</h2>
               </div>
-              <span className="rounded-xl bg-muted px-3 py-1 text-xs">{groupedTasks[status].length}</span>
+              <span className="rounded-full bg-muted px-3 py-1 text-xs text-fg/65">{groupedTasks[key].length}</span>
             </div>
 
-            {status === 'inbox' ? <p className="mt-3 text-sm text-fg/60">Лучший ритуал — разбирать inbox до нуля утром и вечером.</p> : null}
-
-            <div className="mt-4 space-y-3">
-              {groupedTasks[status].map((task) => (
+            <div className="space-y-2">
+              {groupedTasks[key].map((task) => (
                 <article
                   key={task.id}
                   draggable
@@ -166,126 +86,95 @@ export default function TasksPage() {
                     setDraggedTaskId(null);
                     setDragOverStatus(null);
                   }}
-                  className={`cursor-grab rounded-2xl bg-muted/50 p-4 active:cursor-grabbing ${draggedTaskId === task.id ? 'opacity-60 ring-2 ring-accent/40' : ''}`}
+                  className="rounded-xl border border-fg/10 bg-panel px-4 py-3"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <button onClick={() => setSelectedTaskId(task.id)} className="min-w-0 flex-1 text-left">
-                      <div className="flex items-center gap-2 text-fg/45">
-                        <GripVertical size={14} />
-                        <span className="text-[11px] uppercase tracking-[0.2em]">drag</span>
-                      </div>
-                      <p className={`mt-2 font-medium ${task.status === 'completed' ? 'line-through opacity-60' : ''}`}>{task.title}</p>
-                      <p className="mt-1 text-xs text-fg/60">{task.due ?? 'Без дедлайна'} · {task.priority}</p>
-                      {task.note ? <p className="mt-2 line-clamp-3 text-xs text-fg/60">{task.note}</p> : null}
-                    </button>
-                    <button
-                      onClick={() => toggleFocusTask(task.id)}
-                      className={`shrink-0 rounded-lg px-3 py-1 text-xs ${state.settings.focusTaskIds.includes(task.id) ? 'bg-violet-500 text-white' : 'bg-panel'}`}
-                    >
-                      {state.settings.focusTaskIds.includes(task.id) ? 'Убрать из Top 3' : 'В Top 3'}
-                    </button>
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button onClick={() => toggleTask(task.id)} className="rounded-lg bg-panel px-3 py-1 text-xs">
-                      {task.status === 'completed' ? 'Восстановить' : 'Завершить'}
-                    </button>
-                    <button onClick={() => setSelectedTaskId(task.id)} className="rounded-lg bg-panel px-3 py-1 text-xs">
-                      Детали
-                    </button>
-                    <button onClick={() => removeTask(task.id)} className="rounded-lg border border-red-300 bg-red-50 px-3 py-1 text-xs font-medium text-red-700">
-                      Удалить
-                    </button>
+                  <button onClick={() => setSelectedTaskId(task.id)} className="w-full text-left">
+                    <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-fg/40">
+                      <GripVertical size={12} /> drag
+                    </div>
+                    <p className={`mt-2 font-medium ${task.status === 'completed' ? 'line-through text-fg/45' : ''}`}>{task.title}</p>
+                    <p className="mt-1 text-sm text-fg/52">{task.due ?? 'Без дедлайна'} · {task.priority}</p>
+                  </button>
+                  <div className="mt-3 flex items-center gap-3 text-sm text-fg/55">
+                    <button onClick={() => toggleTask(task.id)}>{task.status === 'completed' ? 'Restore' : 'Done'}</button>
+                    <button onClick={() => setSelectedTaskId(task.id)}>Edit</button>
+                    <button onClick={() => removeTask(task.id)} className="text-red-600">Delete</button>
                   </div>
                 </article>
               ))}
-
-              {!groupedTasks[status].length ? (
-                <div className="rounded-2xl border border-dashed border-fg/15 bg-panel/40 p-4 text-sm text-fg/55">
-                  {dragOverStatus === status ? 'Отпускай сюда — задача переместится в эту категорию.' : 'Пусто. Перетащи сюда задачу из другой колонки.'}
-                </div>
-              ) : null}
+              {!groupedTasks[key].length ? <div className="rounded-xl border border-dashed border-fg/10 px-4 py-6 text-sm text-fg/45">Пусто</div> : null}
             </div>
           </section>
         ))}
       </div>
 
       {selectedTask ? (
-        <div className="fixed inset-0 z-[92] flex justify-end bg-black/40 backdrop-blur-sm">
-          <button type="button" aria-label="Закрыть drawer" className="flex-1 cursor-default" onClick={() => setSelectedTaskId(null)} />
-          <aside className="glass relative h-full w-full max-w-xl overflow-y-auto p-5 shadow-glow">
+        <div className="fixed inset-0 z-[92] flex justify-end bg-black/30">
+          <button type="button" aria-label="Закрыть drawer" className="flex-1" onClick={() => setSelectedTaskId(null)} />
+          <aside className="surface h-full w-full max-w-lg overflow-y-auto rounded-none p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-fg/55">Task detail</p>
-                <h2 className="mt-1 text-2xl font-semibold">Сфокусируй задачу до конкретного next step</h2>
+                <p className="text-sm font-medium text-fg/50">Task</p>
+                <h2 className="mt-1 text-2xl font-semibold tracking-[-0.03em]">Редактирование без шума</h2>
               </div>
               <button type="button" onClick={() => setSelectedTaskId(null)} className="rounded-xl bg-muted p-2">
                 <X size={16} />
               </button>
             </div>
 
-            <div className="mt-5 space-y-4">
+            <div className="mt-6 space-y-4">
               <div>
-                <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-fg/55">Title</label>
+                <label className="mb-2 block text-sm font-medium text-fg/60">Title</label>
                 <input
                   value={selectedTask.title}
                   onChange={(event) => updateTask(selectedTask.id, { title: event.target.value })}
-                  className="w-full rounded-2xl border border-fg/10 bg-panel/80 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-accent/35"
+                  className="h-11 w-full rounded-xl border border-fg/10 bg-transparent px-4 text-sm outline-none focus:ring-2 focus:ring-accent/25"
                 />
               </div>
-
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-fg/55">Due</label>
+                  <label className="mb-2 block text-sm font-medium text-fg/60">Due</label>
                   <input
                     value={selectedTask.due ?? ''}
                     onChange={(event) => updateTask(selectedTask.id, { due: event.target.value || undefined })}
-                    placeholder="Например: Завтра 15:00"
-                    className="w-full rounded-2xl border border-fg/10 bg-panel/80 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-accent/35"
+                    className="h-11 w-full rounded-xl border border-fg/10 bg-transparent px-4 text-sm outline-none focus:ring-2 focus:ring-accent/25"
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-fg/55">Priority</label>
+                  <label className="mb-2 block text-sm font-medium text-fg/60">Priority</label>
                   <select
                     value={selectedTask.priority}
                     onChange={(event) => updateTask(selectedTask.id, { priority: event.target.value as 'low' | 'medium' | 'high' })}
-                    className="w-full rounded-2xl border border-fg/10 bg-panel/80 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-accent/35"
+                    className="h-11 w-full rounded-xl border border-fg/10 bg-transparent px-4 text-sm outline-none focus:ring-2 focus:ring-accent/25"
                   >
-                    <option value="low">low</option>
-                    <option value="medium">medium</option>
-                    <option value="high">high</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
                   </select>
                 </div>
               </div>
-
               <div>
-                <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-fg/55">Status</label>
+                <label className="mb-2 block text-sm font-medium text-fg/60">Status</label>
                 <div className="flex flex-wrap gap-2">
-                  {STATUSES.map((status) => (
+                  {STATUSES.map(({ key, label }) => (
                     <button
-                      key={status}
+                      key={key}
                       type="button"
-                      onClick={() => updateTask(selectedTask.id, { status })}
-                      className={`rounded-xl px-3 py-2 text-sm ${selectedTask.status === status ? 'bg-accent text-white' : 'bg-muted'}`}
+                      onClick={() => updateTask(selectedTask.id, { status: key })}
+                      className={`h-10 rounded-xl px-4 text-sm ${selectedTask.status === key ? 'bg-fg text-white' : 'bg-muted text-fg/72'}`}
                     >
-                      {status}
+                      {label}
                     </button>
                   ))}
                 </div>
               </div>
-
               <div>
-                <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-fg/55">Execution note</label>
+                <label className="mb-2 block text-sm font-medium text-fg/60">Note</label>
                 <textarea
                   value={selectedTask.note ?? ''}
                   onChange={(event) => updateTask(selectedTask.id, { note: event.target.value || undefined })}
-                  placeholder="Что именно нужно сделать? Какой следующий шаг?"
-                  className="min-h-40 w-full rounded-2xl border border-fg/10 bg-panel/80 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-accent/35"
+                  className="min-h-40 w-full rounded-xl border border-fg/10 bg-transparent px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-accent/25"
                 />
-              </div>
-
-              <div className="rounded-2xl bg-muted/40 p-4 text-sm text-fg/65">
-                Изменения сохраняются автоматически. Перетаскивание между колонками и drawer теперь работают как один и тот же статусный workflow.
               </div>
             </div>
           </aside>
