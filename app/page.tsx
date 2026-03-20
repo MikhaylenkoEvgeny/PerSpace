@@ -151,6 +151,19 @@ export default function HomePage() {
           </div>
         </Panel>
       </div>
+
+      <Panel title="Recent library context" eyebrow="Files + music">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div>
+            <h3 className="mb-3 text-sm font-semibold text-fg/70">Недавние файлы</h3>
+            <ul className="space-y-2">{state.files.slice(0, 4).map((file) => <li key={file.id} className="flex items-center justify-between rounded-xl bg-muted/40 p-3 text-sm"><span>{file.name}</span><span className="text-fg/55">{file.updatedAt}</span></li>)}</ul>
+          </div>
+          <div>
+            <h3 className="mb-3 text-sm font-semibold text-fg/70">Слушали недавно</h3>
+            <ul className="space-y-2">{state.tracks.slice(0, 4).map((track) => <li key={track.id} className="flex items-center justify-between rounded-xl bg-muted/40 p-3 text-sm"><span>{track.title} — {track.artist}</span><ArrowRight size={14} className="text-fg/45" /></li>)}</ul>
+          </div>
+        </div>
+      </Panel>
     </div>
   );
 }
