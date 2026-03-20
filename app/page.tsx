@@ -4,11 +4,14 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { useWorkspace } from '@/components/workspace-provider';
 
-function Section({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
+function Panel({ title, children, eyebrow, action }: { title: string; children: React.ReactNode; eyebrow?: string; action?: React.ReactNode }) {
   return (
     <section className="surface p-5 md:p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold tracking-[-0.02em]">{title}</h2>
+        <div>
+          {eyebrow ? <p className="text-xs uppercase tracking-[0.16em] text-fg/45">{eyebrow}</p> : null}
+          <h2 className="mt-1 text-lg font-semibold tracking-[-0.02em]">{title}</h2>
+        </div>
         {action}
       </div>
       {children}
@@ -79,7 +82,7 @@ export default function HomePage() {
       </section>
 
       <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <Section title="Today list" action={<Link href="/tasks" className="text-sm text-fg/55 hover:text-fg">Open all</Link>}>
+        <Panel title="Today list" action={<Link href="/tasks" className="text-sm text-fg/55 hover:text-fg">Open all</Link>}>
           <div className="space-y-2">
             {(todayTasks.length ? todayTasks : state.tasks.slice(0, 3)).map((task) => (
               <div key={task.id} className="flex items-center justify-between gap-3 rounded-xl border border-fg/10 px-4 py-3">
@@ -93,9 +96,9 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-        </Section>
+        </Panel>
 
-        <Section
+        <Panel
           title="Inbox needs triage"
           action={
             <Link href="/tasks" className="inline-flex items-center gap-1 text-sm text-fg/55 hover:text-fg">
@@ -119,7 +122,34 @@ export default function HomePage() {
             ))}
             {!inboxTasks.length ? <p className="text-sm text-fg/55">Inbox пуст. Это именно то ощущение порядка, которое нужно сохранить.</p> : null}
           </div>
-        </Section>
+        </Panel>
+
+        <Panel title="Recent library context" eyebrow="Files + music">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div>
+              <h3 className="mb-3 text-sm font-semibold text-fg/70">Недавние файлы</h3>
+              <ul className="space-y-2">
+                {state.files.slice(0, 4).map((file) => (
+                  <li key={file.id} className="flex items-center justify-between rounded-xl bg-muted/40 p-3 text-sm">
+                    <span>{file.name}</span>
+                    <span className="text-fg/55">{file.updatedAt}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="mb-3 text-sm font-semibold text-fg/70">Слушали недавно</h3>
+              <ul className="space-y-2">
+                {state.tracks.slice(0, 4).map((track) => (
+                  <li key={track.id} className="flex items-center justify-between rounded-xl bg-muted/40 p-3 text-sm">
+                    <span>{track.title} — {track.artist}</span>
+                    <ArrowRight size={14} className="text-fg/45" />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </Panel>
       </div>
 
       <Panel title="Recent library context" eyebrow="Files + music">
