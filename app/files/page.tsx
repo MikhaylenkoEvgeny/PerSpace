@@ -21,7 +21,7 @@ export default function FilesPage() {
   const loadFiles = useCallback(async () => {
     try {
       setError(null);
-      const response = await fetch('/perSpace/api/files', { cache: 'no-store' });
+      const response = await fetch('/perSpace/api/files', { cache: 'no-store', credentials: 'include' });
       if (!response.ok) throw new Error('files_load_failed');
       const data = (await response.json()) as { files: UploadedFile[] };
       setFiles(data.files);
@@ -51,7 +51,8 @@ export default function FilesPage() {
       setIsUploading(true);
       const response = await fetch('/perSpace/api/files', {
         method: 'POST',
-        body: formData
+        body: formData,
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -74,7 +75,10 @@ export default function FilesPage() {
   const handleDelete = async (id: string) => {
     try {
       setError(null);
-      const response = await fetch(`/perSpace/api/files?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      const response = await fetch(`/perSpace/api/files?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
       if (!response.ok) throw new Error('Не удалось удалить файл.');
       await loadFiles();
     } catch (deleteError) {
