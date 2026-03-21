@@ -23,7 +23,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const isLoginPage = pathname === '/login';
 
   const logout = async () => {
-    await fetch('/perSpace/api/auth/logout', { method: 'POST' });
+    await fetch('/perSpace/api/auth/logout', { method: 'POST', credentials: 'include' });
     window.location.href = '/perSpace/login';
   };
 

@@ -18,7 +18,7 @@ export default function MusicPage() {
   const loadTracks = useCallback(async () => {
     try {
       setError(null);
-      const response = await fetch('/perSpace/api/music', { cache: 'no-store' });
+      const response = await fetch('/perSpace/api/music', { cache: 'no-store', credentials: 'include' });
       if (!response.ok) throw new Error('tracks_load_failed');
       const data = (await response.json()) as { tracks: UploadedTrack[] };
       setTracks(data.tracks);
@@ -44,7 +44,8 @@ export default function MusicPage() {
       setIsUploading(true);
       const response = await fetch('/perSpace/api/music', {
         method: 'POST',
-        body: formData
+        body: formData,
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -71,7 +72,10 @@ export default function MusicPage() {
   const handleDeleteTrack = async (id: string) => {
     try {
       setError(null);
-      const response = await fetch(`/perSpace/api/music?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      const response = await fetch(`/perSpace/api/music?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
       if (!response.ok) throw new Error('Не удалось удалить трек.');
       await loadTracks();
     } catch (deleteError) {

@@ -32,7 +32,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
     const hydrate = async () => {
       try {
-        const response = await fetch('/perSpace/api/workspace', { cache: 'no-store' });
+        const response = await fetch('/perSpace/api/workspace', { cache: 'no-store', credentials: 'include' });
         if (!response.ok) throw new Error('server_hydration_failed');
         const data = (await response.json()) as { state: WorkspaceState };
         if (mounted) {
@@ -82,7 +82,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       fetch('/perSpace/api/workspace', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ state })
+        body: JSON.stringify({ state }),
+        credentials: 'include'
       }).catch(() => {
         // silent fallback to localStorage in poor network conditions
       });
